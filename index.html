@@ -1,0 +1,313 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Diagnosis Track — Web</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="./styles.css" />
+  <style>
+    /* Estilos para el menú desplegable */
+    .dropdown {
+      position: relative;
+      display: inline-block;
+    }
+
+    .dropdown-content {
+      position: absolute;
+      background-color: #f9f9f9;
+      min-width: 200px;
+      box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+      z-index: 1000;
+      border-radius: 4px;
+      overflow: hidden;
+      top: 100%;
+      left: 0;
+    }
+
+    .dropdown-content a {
+      color: black;
+      padding: 12px 16px;
+      text-decoration: none;
+      display: block;
+      cursor: pointer;
+      border-bottom: 1px solid #eee;
+    }
+
+    .dropdown-content a:last-child {
+      border-bottom: none;
+    }
+
+    .dropdown-content a:hover {
+      background-color: #f1f1f1;
+    }
+
+    /* Estilos modernos para el login */
+    .auth-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+      background-image: url('./assets/images/ciudad_inteligente.png');
+      background-size: cover;
+      background-position: center;
+      position: relative;
+    }
+
+    .auth-container::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.6);
+      z-index: 1;
+    }
+
+    .auth-card {
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+      padding: 2.5rem;
+      width: 100%;
+      max-width: 420px;
+      transition: transform 0.3s ease;
+      position: relative;
+      z-index: 2;
+    }
+
+    .auth-card:hover {
+      transform: translateY(-5px);
+    }
+
+    .auth-card h1 {
+      text-align: center;
+      margin-bottom: 1.5rem;
+      color: #2d3748;
+      font-weight: 700;
+      font-size: 1.8rem;
+    }
+
+    .auth-input {
+      width: 100%;
+      padding: 12px 16px;
+      border: 2px solid #e2e8f0;
+      border-radius: 10px;
+      font-size: 16px;
+      transition: all 0.3s ease;
+      margin-bottom: 1rem;
+    }
+
+    .auth-input:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .auth-btn {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .auth-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+    }
+
+    .auth-btn:active {
+      transform: translateY(0);
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    /* Estilo para el ícono en la App Bar */
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-icon {
+      width: 28px;
+      height: 28px;
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar hidden">
+    <div class="brand">
+      <img src="./assets/images/icono.png" alt="Icono" class="brand-icon" />
+      <span>Diagnosis Track</span>
+    </div>
+    <div class="toolbar">
+      <!-- Botón de menú con dropdown -->
+      <div class="dropdown">
+        <button id="btnMenu" class="btn">Menú</button>
+        <div id="menuContent" class="dropdown-content hidden">
+          <a href="#" id="menuLoadCSV">Cargar rutas desde archivo .csv</a>
+          <a href="#" id="menuConfig">Configuración</a>
+          <a href="#" id="menuExit">Salir</a>
+        </div>
+      </div>
+      
+      <button id="btnRefresh" class="btn">Actualizar</button>
+      <button id="btnSearch" class="btn">Buscar</button>
+      <button id="btnFleet" class="btn">Mi flota</button>
+      <button id="btnLocate" class="btn">Mi ubicación</button>
+      <span class="units">N° de unidades: <strong id="unitsCount">0</strong></span>
+    </div>
+  </header>
+
+  <!-- AUTH PANE -->
+  <main id="authPane" class="pane">
+    <div class="auth-container">
+      <section class="auth-card">
+        <h1>Ingreso al Sistema</h1>
+        <div>
+          <input id="username" type="text" class="auth-input" placeholder="Usuario" />
+          <input id="password" type="password" class="auth-input" placeholder="Contraseña" />
+        </div>
+        <div>
+          <button id="btnLogin" class="auth-btn">Iniciar Sesión</button>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <!-- MAP PANE -->
+  <main id="mapPane" class="pane hidden">
+    <div id="map"></div>
+
+    <!-- SEARCH PANEL (derecha) -->
+    <aside id="searchPanel" class="right-drawer hidden">
+      <header>
+        <h3>Buscar dispositivo</h3>
+        <button id="btnCloseSearch" class="btn btn-sm">×</button>
+      </header>
+      <div class="content">
+        <input id="searchId" type="text" placeholder="ID exacto..." />
+        <button id="btnDoSearch" class="btn btn-primary btn-sm">Buscar</button>
+        <div id="searchMsg" class="muted mt-s"></div>
+      </div>
+    </aside>
+
+    <!-- FLEET PANEL (derecha) -->
+    <aside id="fleetPanel" class="right-drawer hidden">
+      <header>
+        <h3>Mi flota</h3>
+        <button id="btnCloseFleet" class="btn btn-sm">×</button>
+      </header>
+      <div class="content">
+        <ul id="fleetList"></ul>
+      </div>
+    </aside>
+
+    <!-- DETAILS PANEL (derecha) -->
+    <aside id="detailsPanel" class="details-panel hidden">
+      <header class="details-header">
+        <div>
+          <div class="muted">Dispositivo</div>
+          <div id="dpDevice" class="big"></div>
+        </div>
+        <button id="btnCloseDetails" class="btn btn-sm">×</button>
+      </header>
+      <div class="details-body">
+        <div class="kv"><span class="k">Fecha</span><span class="v" id="dpDate">-</span></div>
+        <div class="kv"><span class="k">Hora</span><span class="v" id="dpTime">-</span></div>
+        <div class="kv"><span class="k">Evento</span><span class="v" id="dpEvent">-</span></div>
+        <div class="kv"><span class="k">Velocidad</span><span class="v" id="dpSpeed">-</span></div>
+        <div class="kv"><span class="k">Señal</span><span class="v" id="dpSignal">-</span></div>
+        <div class="kv"><span class="k">Lat/Lon</span><span class="v" id="dpLatLon">-</span></div>
+        <div class="kv"><span class="k">Dirección: </span><span class="v" id="dpAddress">-</span></div>
+      </div>
+
+      <div class="details-actions">
+        <div class="group">
+          <div class="group-title">Ver hoy</div>
+          <div class="chips">
+            <button class="chip" data-min="30">30 min</button>
+            <button class="chip" data-min="45">45 min</button>
+            <button class="chip" data-min="60">1 h</button>
+            <button class="chip" data-min="120">2 hs</button>
+            <button class="chip" data-min="360">6 hs</button>
+            <button class="chip" data-min="720">12 hs</button>
+          </div>
+        </div>
+
+        <div class="group">
+          <div class="group-title">Ver días anteriores</div>
+          <div class="grid2">
+            <label>Desde<br/><input id="dtFrom" type="datetime-local" /></label>
+            <label>Hasta<br/><input id="dtTo" type="datetime-local" /></label>
+          </div>
+      
+
+
+        <div class="group">
+          <button id="btnApplyRange" class="btn btn-primary btn-sm">Buscar</button>
+          <button id="btnDownload" class="btn btn-secondary btn-sm" disabled>Descargar ruta (CSV)</button>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <!-- TOAST -->
+  <div id="toast" class="toast hidden"></div>
+
+  <!-- LIB & APP -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script type="module" src="./utils.js"></script>
+  <script type="module" src="./api.js"></script>
+  <script type="module" src="./app.js"></script>
+  <script type="module" src="./load-csv.js"></script>
+
+  <!-- LEFT STATUS SIDEBAR (FIJA / OCULTA EN LOGIN) -->
+  <aside id="statusPanel" class="left-sidebar hidden">
+    <button id="btnStatusToggle" class="collapse-handle" title="Minimizar/Expandir">❮</button>
+
+    <div class="sp-header">
+      <div class="sp-title">Usuario</div>
+      <div class="sp-user" id="spUser">-</div>
+    </div>
+
+    <div class="sp-body">
+      <div class="sp-section-title">Mi flota</div>
+      <div class="sp-row" id="spTotalRow">
+        <span class="sp-icon">🚘</span>
+        <span class="sp-label">Cantidad total</span>
+        <span class="sp-value" id="spTotal">0</span>
+      </div>
+
+      <div class="sp-row clickable" id="spTransitRow" title="Mostrar vehículos en tránsito">
+        <span class="sp-icon">🟢</span>
+        <span class="sp-label">En tránsito</span>
+        <span class="sp-value" id="spTransit">0</span>
+      </div>
+
+      <div class="sp-row clickable" id="spDetenidoRow" title="Mostrar vehículos detenidos/apagados">
+        <span class="sp-icon">🔴</span>
+        <span class="sp-label">Detenidos/Apagados</span>
+        <span class="sp-value" id="spDetenido">0</span>
+      </div>
+
+      <div class="sp-row clickable" id="spSinRepRow" title="Mostrar vehículos sin reportar (≥5h)">
+        <span class="sp-icon">⚪</span>
+        <span class="sp-label">Sin reportar (≥5h)</span>
+        <span class="sp-value" id="spSinRep">0</span>
+      </div>
+    </div>
+  </aside>
+</body>
+</html>

@@ -1,0 +1,438 @@
+/* Basic layout */
+* { box-sizing: border-box; }
+body, html { margin: 0; height: 100%; font-family: system-ui, Arial, sans-serif; color: #0f172a; }
+.hidden { display: none !important; }
+
+.topbar {
+  height: 58px; display: flex; align-items: center; justify-content: space-between;
+  padding: 0 12px; background:#111827; color:#fff; gap:10px;
+}
+.topbar .brand { font-weight:700; }
+.topbar .toolbar { display:flex; gap:8px; align-items:center; flex-wrap: wrap; }
+.units strong { font-size: 16px; }
+
+.btn { padding: 6px 10px; border:1px solid #e5e7eb; background:#fff; border-radius:8px; cursor:pointer; }
+.btn:hover { background:#f3f4f6; }
+.btn-primary { background:#2563eb; color:#fff; border-color:#2563eb; }
+.btn-primary:hover { background:#1d4ed8; }
+.btn-secondary { background:#0ea5e9; color:#fff; border-color:#0ea5e9; }
+.btn-secondary:hover{ background:#0284c7; }
+.btn-danger { background:#ef4444; color:#fff; border-color:#ef4444; }
+.btn-sm { padding: 4px 8px; }
+.mt { margin-top: 12px; }
+.mt-s { margin-top: 6px; }
+
+.pane { height: calc(100vh - 58px); }
+#mapPane { position: relative; }
+#map { position: absolute; inset: 0; }
+
+.card { background:#fff; border-radius:12px; padding:16px; border:1px solid #e5e7eb; }
+.auth-card { max-width: 720px; margin: 24px auto; }
+.grid2 { display:grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.grid4 { display:grid; grid-template-columns: repeat(4,1fr); gap: 10px; }
+input { width: 100%; padding: 8px 10px; border-radius: 8px; border:1px solid #cbd5e1; }
+.debug { background:#0f172a; color:#d1d5db; padding: 8px; border-radius:8px; min-height: 80px; overflow:auto; }
+
+.side-modal {
+  position: absolute; top: 70px; left: 10px; width: 320px;
+  background:#fff; border:1px solid #e5e7eb; border-radius:12px; box-shadow: 0 10px 30px rgba(0,0,0,.15);
+  z-index: 400; padding: 8px 10px;
+}
+.side-modal header { display:flex; align-items:center; justify-content:space-between; }
+.side-modal .content { padding: 8px 4px; }
+
+/* Right details panel */
+.details-panel {
+  position: absolute; top: 10px; right: 10px; width: 460px;
+  background:#fff; border:5px solid #e5e7eb; border-radius:12px; box-shadow: 0 10px 30px rgba(0,0,0,.15);
+  z-index: 450; display:flex; flex-direction: column;
+}
+.details-header { display:flex; align-items:center; justify-content: space-between; padding: 12px; border-bottom:1px solid #e5e7eb; }
+.details-header .big { font-size: 20px; font-weight: 700; }
+.muted { color:#6b7280; }
+.details-body { padding: 12px; display:grid; gap: 6px; }
+.kv { display:flex; justify-content: space-between; border-bottom:1px dashed #e5e7eb; padding: 4px 0; }
+.kv .k { color:#6b7280; }
+.details-actions { padding: 12px; border-top:1px solid #e5e7eb; display:grid; gap:12px; }
+.group-title { font-weight:600; margin-bottom: 26px; }
+.chips { display:flex; flex-wrap: wrap; gap:6px; }
+.chip { border:1px solid #d1d5db; padding:6px 8px; border-radius:999px; cursor:pointer; background:#fff; }
+.chip:hover { background:#f3f4f6; }
+
+.toast {
+  position: fixed; left: 50%; transform: translateX(-50%);
+  bottom: 16px; background:#111827; color:#fff; padding: 10px 14px; border-radius: 8px;
+  z-index: 1000; box-shadow: 0 10px 30px rgba(0,0,0,.25);
+}
+
+.route-popup {
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.route-popup strong {
+  display: inline-block;
+  width: 80px;
+}
+
+/* Agregar en tu CSS */
+.route-popup {
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.route-popup strong {
+  display: inline-block;
+  width: 80px;
+}
+
+/* Estilos para las flechas y banderas */
+.leaflet-marker-icon {
+  filter: drop-shadow(1px 1px 2px rgba(0, 0, 0, 0.5));
+}
+
+/* Panel de estado (derecha, compacto) */
+.status-panel{
+  position: absolute;
+  top: 10px; right: 10px; width: 320px;
+  background:#fff; border:1px solid #e5e7eb; border-radius:12px;
+  box-shadow: 0 10px 30px rgba(0,0,0,.15);
+  z-index: 440; /* debajo de details-panel (450) */
+  display: flex; flex-direction: column;
+}
+.status-panel header { padding: 12px; border-bottom:1px solid #e5e7eb; }
+.status-panel .big { font-size: 18px; font-weight:700; }
+
+.status-panel .stats { padding: 10px 12px; display: grid; gap: 8px; }
+.status-panel .row {
+  display:flex; align-items:center; justify-content:space-between;
+  padding: 8px 10px; border:1px solid #e5e7eb; border-radius:10px;
+}
+.status-panel .row-btn {
+  cursor:pointer; background:#fff;
+}
+.status-panel .row-btn:hover { background:#f9fafb; }
+.status-panel .label { display:flex; align-items:center; gap: 8px; color:#111827; }
+.status-panel .value { font-weight: 700; }
+.status-panel .icon { width: 18px; height: 18px; }
+
+
+:root{
+  --topbar-h: 70px;            /* si tu AppBar mide ~70px */
+  --sidebar-w: 280px;          /* ancho expandida */
+  --sidebar-w-collapsed: 48px; /* ancho minimizada */
+}
+
+/* Dejá espacio para la barra lateral fija */
+#mapPane{
+  position: relative;
+  padding-left: var(--sidebar-w);
+}
+
+/* Ajuste cuando está minimizada */
+body.sidebar-collapsed #mapPane{
+  padding-left: var(--sidebar-w-collapsed);
+}
+
+/* ==== LEFT SIDEBAR FIJA ==== */
+.left-sidebar{
+  position: fixed;
+  top: var(--topbar-h);
+  bottom: 0;
+  left: 0;
+  width: var(--sidebar-w);
+  background: #121826;           /* oscuro lindo */
+  color: #fff;
+  border-right: 1px solid #223047;
+  z-index: 1000;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Botón de minimizar/expandir (pega al borde derecho) */
+.left-sidebar .collapse-handle{
+  position: absolute;
+  top: 8px;
+  right: 12px;
+  width: 24px;
+  height: 54px;
+  border-radius: 12px;
+  border: 10px solid #223047;
+  background: #0f172a;
+  color: #fff;
+  font-size: 22px;
+  cursor: pointer;
+  line-height: 22px;
+  text-align: center;
+  box-shadow: 0 0 0 3px rgba(15,23,42,.2);
+}
+.left-sidebar.collapsed .collapse-handle{
+  right: -12px;
+}
+/* Cambiamos la flecha cuando está colapsada */
+.left-sidebar:not(.collapsed) .collapse-handle::after{ content:""; }
+.left-sidebar.collapsed .collapse-handle{ transform: rotate(180deg); }
+
+/* Encabezado */
+.left-sidebar .sp-header{
+  padding: 14px 14px 8px 14px;
+  border-bottom: 1px solid #223047;
+}
+.sp-title{
+  font-size: 12px;
+  color: #9aa6b2;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+.sp-user{
+  font-size: 16px;
+  font-weight: 700;
+  margin-top: 4px;
+}
+
+/* Cuerpo */
+.left-sidebar .sp-body{
+  padding: 10px 8px 10px 8px;
+  overflow-y: auto;
+}
+.sp-section-title{
+  font-size: 12px;
+  color: #9aa6b2;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  margin: 36px 36px 10px;
+}
+
+.sp-row{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding: 10px 8px;
+  border-radius: 8px;
+  margin: 6px;
+  background: #0f172a;
+  border: 1px solid #223047;
+}
+.sp-row .sp-icon{ width: 18px; text-align: center; }
+.sp-row .sp-label{ flex: 1; font-weight: 600; }
+.sp-row .sp-value{ font-weight: 800; }
+
+.sp-row.clickable{ cursor: pointer; }
+.sp-row.clickable:hover{ background:#111c34; }
+
+/* Estado COLAPSADO: sólo dejamos ver el botón y un margen */
+.left-sidebar.collapsed{
+  width: var(--sidebar-w-collapsed);
+}
+.left-sidebar.collapsed .sp-header,
+.left-sidebar.collapsed .sp-body{
+  display: none;
+}
+
+/* (opcional) Ensanchar un poquito tu panel de detalles de la derecha */
+.details-panel{
+  width: 420px; /* antes era más angosto */
+}
+
+
+/* Paneles del lado derecho (Buscar, Mi flota y Detalles) */
+.right-drawer,
+.details-panel{
+  position: fixed;
+  top: var(--topbar-h);
+  right: 0;
+  bottom: 0;
+  width: 420px;              /* un poco más ancho como pediste */
+  background: #ffffff;
+  border-left: 1px solid #e5e7eb;
+  box-shadow: -8px 0 24px rgba(0,0,0,.08);
+  z-index: 1001;             /* por encima del mapa, debajo de toasts si tenés */
+  display: flex;
+  flex-direction: column;
+}
+
+.right-drawer header,
+.details-panel .details-header{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 12px 14px;
+  border-bottom: 1px solid #e5e7eb;
+  background: #f8fafc;
+}
+
+.right-drawer .content,
+.details-panel .details-actions,
+.details-panel .details-body{
+  padding: 14px;
+  overflow: auto;
+}
+
+/* Flechas de dirección (divIcon con <img>) */
+.leaflet-marker-icon.arrow-icon {
+  background: transparent;
+  border: 0;
+  pointer-events: none; /* no tapa la polyline ni los puntos */
+}
+.arrow-icon img {
+  width: 20px;
+  height: 20px;
+  display: block;
+}
+
+.menu-wrapper { position: relative; display: inline-block; }
+.dropdown.hidden { display: none; }
+.dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  min-width: 240px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  box-shadow: 0 10px 24px rgba(0,0,0,.12);
+  padding: 6px;
+  z-index: 2000;
+}
+.dropdown .btn {
+  display: block;
+  width: 100%;
+  text-align: left;
+  margin: 4px 0;
+}
+.btn-ghost { background: transparent; }
+
+/* Si ya tenías estilos para .details-panel, podés dejarlos;
+   esto asegura que Buscar/Mi flota usen el mismo layout a la derecha */
+
+
+   /* Estilos para el menú desplegable */
+.dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.dropdown-content {
+  position: absolute;
+  background-color: #f9f9f9;
+  min-width: 200px;
+  box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+  z-index: 1000;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.dropdown-content a {
+  color: black;
+  padding: 12px 16px;
+  text-decoration: none;
+  display: block;
+  cursor: pointer;
+}
+
+.dropdown-content a:hover {
+  background-color: #f1f1f1;
+}
+
+/* Asegurar que el botón Menú tenga el mismo estilo que otros botones */
+#btnMenu {
+  padding: 6px 10px;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+#btnMenu:hover {
+  background: #f3f4f6;
+}
+
+.leaflet-bottom.leaflet-right {
+  bottom: 20px;
+  right: 10px;
+}
+  
+  .leaflet-control-zoom {
+    border: 2px solid rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+    margin-bottom: 20px !important;
+  }
+  
+  .leaflet-control-zoom a {
+  background-color: #fff;
+  color: #333;
+  border-bottom: 1px solid #ccc;
+  width: 30px;
+  height: 30px;
+  line-height: 30px;
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.leaflet-control-zoom a:first-child {
+  border-radius: 4px 4px 0 0;
+}
+
+.leaflet-control-zoom a:last-child {
+  border-bottom: none;
+  border-radius: 0 0 4px 4px;
+}
+
+.leaflet-control-zoom a:hover {
+  background-color: #f4f4f4;
+}
+
+.marker-label {
+  background-color: rgba(255, 255, 255, 0.9);
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 12px;
+  font-weight: bold;
+  text-shadow: 1px 1px 1px rgba(255, 255, 255, 0.8);
+  white-space: nowrap;
+}
+
+.leaflet-tooltip-bottom:before {
+  border-bottom-color: rgba(255, 255, 255, 0.9);
+}
+
+/* ===== NUEVOS ESTILOS PARA ESPACIADO ===== */
+/* Ajustar espaciado en el panel de detalles */
+.details-actions .group {
+  margin-bottom: 20px; /* Aumentar espacio entre grupos */
+}
+
+.details-actions .group:last-child {
+  margin-bottom: 0; /* Quitar margen del último grupo */
+}
+
+.details-actions .group-title {
+  font-weight: 600;
+  margin-bottom: 12px; /* Aumentar espacio debajo del título */
+  font-size: 14px;
+  color: #374151;
+}
+
+/* Espaciado específico para el grupo de chips */
+.details-actions .chips {
+  margin-bottom: 8px; /* Espacio debajo de los chips */
+}
+
+/* Espaciado para los inputs de fecha */
+.details-actions .grid2 {
+  gap: 12px; /* Más espacio entre los inputs de fecha */
+  margin-bottom: 12px; /* Espacio debajo de los inputs */
+}
+
+/* Espaciado para el botón de buscar */
+.details-actions #btnApplyRange {
+  margin-bottom: 6px; /* Espacio debajo del botón buscar */
+}
+
+/* Espaciado para el botón de descargar */
+.details-actions #btnDownload {
+  margin-top: 8px; /* Espacio arriba del botón descargar */
+}
