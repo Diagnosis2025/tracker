@@ -584,6 +584,26 @@ async function onLogin() {
 
     showMapPane();
     if (!map) initMap();
+    // antes: initCSVModule();
+initCSVModule({
+  onRouteLoaded: (points) => {
+    // CSV => quiero ver solo la ruta
+    if (typeof hideFleetMarkers === 'function') hideFleetMarkers();
+    currentDevice = 'CSV_IMPORT';
+    drawRoute(points);
+    if (currentPolyline) map.fitBounds(currentPolyline.getBounds(), { padding: [24,24] });
+    showDetails();
+    showToast(`Ruta CSV visualizada con ${points.length} puntos`);
+  },
+  onClearRequested: () => {
+    clearRoute();
+    currentDevice = null;
+    hideDetails();
+    if (typeof showFleetMarkers === 'function') showFleetMarkers();
+    showToast('Ruta CSV eliminada');
+  }
+});
+
     initCSVModule();
     // barra izquierda
     el('spUser').textContent = user?.username || '-';

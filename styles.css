@@ -436,3 +436,37 @@ body.sidebar-collapsed #mapPane{
 .details-actions #btnDownload {
   margin-top: 8px; /* Espacio arriba del botón descargar */
 }
+
+.app-footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background-color: #111827;
+    color: white;
+    padding: 10px 20px;
+    text-align: center;
+    font-size: 14px;
+    z-index: 1000;
+    border-top: 1px solid #374151;
+  }
+
+  .app-footer a {
+    color: #60a5fa;
+    text-decoration: none;
+  }
+
+  .app-footer a:hover {
+    text-decoration: underline;
+  }
+
+  /* Ocultar footer en el mapa */
+  #mapPane ~ .app-footer {
+    display: none;
+  }
+
+  /* Ajustar el auth-container para el footer */
+  .auth-container {
+    min-height: calc(100vh - 40px); /* Considerar altura del footer */
+    padding-bottom: 50px; /* Espacio extra para que no quede tapado */
+  }

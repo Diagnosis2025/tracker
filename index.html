@@ -143,12 +143,39 @@
       width: 28px;
       height: 28px;
     }
+
+    /* ===== NUEVOS ESTILOS PARA EL FOOTER ===== */
+    .login-footer {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: rgba(0, 0, 0, 0.7);
+      color: white;
+      text-align: center;
+      padding: 10px;
+      font-size: 14px;
+      z-index: 3; /* Por encima del overlay pero debajo del formulario */
+    }
+
+    .login-footer a {
+      color: #fff;
+      text-decoration: none;
+    }
+
+    .login-footer a:hover {
+      text-decoration: underline;
+    }
+
+    .login-footer.hidden {
+      display: none;
+    }
   </style>
 </head>
 <body>
   <header class="topbar hidden">
     <div class="brand">
-      <img src="./assets/images/icono.png" alt="Icono" class="brand-icon" />
+      <img src="./assets/images/ic_launcher.png" alt="Icono" class="brand-icon" />
       <span>Diagnosis Track</span>
     </div>
     <div class="toolbar">
@@ -252,16 +279,17 @@
             <label>Desde<br/><input id="dtFrom" type="datetime-local" /></label>
             <label>Hasta<br/><input id="dtTo" type="datetime-local" /></label>
           </div>
-      
-
-
-        <div class="group">
           <button id="btnApplyRange" class="btn btn-primary btn-sm">Buscar</button>
           <button id="btnDownload" class="btn btn-secondary btn-sm" disabled>Descargar ruta (CSV)</button>
         </div>
       </div>
     </aside>
   </main>
+
+  <!-- FOOTER solo para login -->
+  <footer id="loginFooter" class="login-footer">
+    Diagnosis S.A. - Contacto: <a href="mailto:argentinadiagnosis@gmail.com">argentinadiagnosis@gmail.com</a>
+  </footer>
 
   <!-- TOAST -->
   <div id="toast" class="toast hidden"></div>
