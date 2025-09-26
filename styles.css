@@ -470,3 +470,20 @@ body.sidebar-collapsed #mapPane{
     min-height: calc(100vh - 40px); /* Considerar altura del footer */
     padding-bottom: 50px; /* Espacio extra para que no quede tapado */
   }
+
+
+  /* Iconitos en claves del panel de detalles */
+  .kv .k {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .kv .k .ico {
+    font-size: 16px;
+    line-height: 1;
+    width: 16px;
+    display: inline-flex;
+    justify-content: center;
+  }
+
+  

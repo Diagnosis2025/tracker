@@ -151,6 +151,22 @@ function initMap() {
     position: 'bottomright'
   }).addTo(map);
 }
+// --- Batería: parser y formateo ---
+function parseBattery(raw) {
+  if (raw == null) return null;
+  if (typeof raw === 'number') return isFinite(raw) ? raw : null;
+  if (typeof raw === 'string') {
+    // acepta "12,22", " 12.2 ", incluso "12,22V"
+    const s = raw.trim().replace(',', '.').replace(/[^\d.\-+eE]/g, '');
+    const n = parseFloat(s);
+    return Number.isFinite(n) ? n : null;
+  }
+  return null;
+}
+function fmtBattery(v) {
+  if (v == null) return '-';
+  return `${v.toFixed(2)} V`;
+}
 
 function ensureMarker(deviceId, lat, lon, ev) {
   let iconUrl;
@@ -210,6 +226,8 @@ async function onMarkerClick(deviceId) {
       sg: d.sg ?? '-',
       lat: Number(d.la ?? d.lat ?? 0),
       lon: Number(d.lo ?? d.lon ?? 0),
+      bt: parseBattery(d.Bt ?? d.bt ?? d.battery),  // <<< batería normalizada
+
     });
     showDetails(); // abre SOLO detalles, cierra el resto
   } catch (e) {
@@ -218,7 +236,7 @@ async function onMarkerClick(deviceId) {
   }
 }
 
-function fillDetailsPanel({ deviceId, ts, ev, v, sg, lat, lon }) {
+function fillDetailsPanel({ deviceId, ts, ev, v, sg, lat, lon, bt }) {
   el('dpDevice').textContent = deviceId;
   el('dpDate').textContent   = fmtDate(ts);
   el('dpTime').textContent   = fmtTime(ts);
@@ -226,6 +244,8 @@ function fillDetailsPanel({ deviceId, ts, ev, v, sg, lat, lon }) {
   el('dpSpeed').textContent  = `${Number(v)||0} km/h`;
   el('dpSignal').textContent = `${sg ?? '-'}`;
   el('dpLatLon').textContent = `${lat.toFixed(6)}, ${lon.toFixed(6)}`;
+  const batEl = el('dpBattery');
+  if (batEl) batEl.textContent = fmtBattery(bt);
 
   // 👉 Dirección
   const addrEl = el('dpAddress');
@@ -432,7 +452,8 @@ function drawRoute(points) {
         <strong>Velocidad:</strong> ${p.v || 0} km/h<br>
         <strong>Evento:</strong> ${eventLabel(p.ev)}<br>
         <strong>Señal:</strong> ${p.sg || '-'}<br>
-        <strong>Coordenadas:</strong> ${p.lat.toFixed(6)}, ${p.lon.toFixed(6)}
+        <strong>Coordenadas:</strong> ${p.lat.toFixed(6)}, ${p.lon.toFixed(6)}<br>
+        <strong>Batería:</strong> ${fmtBattery(parseBattery(p.Bt ?? p.bt ?? p.battery))}
       </div>
     `;
     marker.bindPopup(popupContent, { closeButton: false });

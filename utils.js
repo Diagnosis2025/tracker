@@ -63,7 +63,7 @@ export function eventLabel(ev) {
 export function carIconByEvent(ev) {
   // Si recibe el string 'stale', usar icono gris
   if (ev === 'stale') {
-    return 'assets/car-gray.png';
+    return 'assets/car-gray.svg';
   }
   
   // Lógica original para eventos numéricos
@@ -72,12 +72,12 @@ export function carIconByEvent(ev) {
   switch (eventNum) {
     case 10: // en movimiento
     case 31: // movimiento
-      return 'assets/car-green.png';
+      return 'assets/car-green.svg';
     case 11: // detenido
     case 30: // detenido
-      return 'assets/car-red.png';
+      return 'assets/car-red.svg';
     default:
-      return 'assets/car-blue.png';
+      return 'assets/car-blue.svg';
   }
 }
 
