@@ -180,14 +180,15 @@
     </div>
     <div class="toolbar">
       <!-- Botón de menú con dropdown -->
-      <div class="dropdown">
-        <button id="btnMenu" class="btn">Menú</button>
-        <div id="menuContent" class="dropdown-content hidden">
-          <a href="#" id="menuLoadCSV">Cargar rutas desde archivo .csv</a>
-          <a href="#" id="menuConfig">Configuración</a>
-          <a href="#" id="menuExit">Salir</a>
-        </div>
-      </div>
+<div class="dropdown">
+  <button id="btnMenu" class="btn" aria-expanded="false">Menú</button>
+  <div id="menuContent" class="dropdown-content hidden">
+    <a href="#" id="menuLoadCSV">Cargar rutas desde archivo .csv</a>
+    <a href="#" id="menuEdit" class="hidden">Editar atributos</a>
+    <a href="#" id="menuExit">Salir</a>
+  </div>
+</div>
+
       
       <button id="btnRefresh" class="btn">Actualizar</button>
       <button id="btnSearch" class="btn">Buscar</button>
@@ -202,13 +203,15 @@
     <div class="auth-container">
       <section class="auth-card">
         <h1>Ingreso al Sistema</h1>
-        <div>
-          <input id="username" type="text" class="auth-input" placeholder="Usuario" />
-          <input id="password" type="password" class="auth-input" placeholder="Contraseña" />
-        </div>
-        <div>
-          <button id="btnLogin" class="auth-btn">Iniciar Sesión</button>
-        </div>
+<form id="loginForm" style="margin:0">
+  <input id="username" name="username" type="text" class="auth-input"
+         placeholder="Usuario" autocomplete="username" autofocus
+         autocapitalize="off" spellcheck="false" />
+  <input id="password" name="password" type="password" class="auth-input"
+         placeholder="Contraseña" autocomplete="current-password" />
+  <button id="btnLogin" type="submit" class="auth-btn">Iniciar Sesión</button>
+</form>
+
       </section>
     </div>
   </main>
@@ -231,7 +234,7 @@
     </aside>
 
     <!-- FLEET PANEL (derecha) -->
-    <aside id="fleetPanel" class="right-drawer hidden">
+    <aside id="fleetPanel" class="right-drawer hidden"> 
       <header>
         <h3>Mi flota</h3>
         <button id="btnCloseFleet" class="btn btn-sm">×</button>
@@ -251,6 +254,12 @@
         <button id="btnCloseDetails" class="btn btn-sm">×</button>
       </header>
 <div class="details-body">
+
+  <div class="kv"><span class="k"><span class="ico">🚘</span>Patente</span><span class="v" id="dpPlate">-</span></div>
+<div class="kv"><span class="k"><span class="ico">🏷️</span>Marca</span><span class="v" id="dpBrand">-</span></div>
+<div class="kv"><span class="k"><span class="ico">📦</span>Modelo</span><span class="v" id="dpModel">-</span></div>
+<div class="kv"><span class="k"><span class="ico">🎨</span>Color</span><span class="v" id="dpColor">-</span></div>
+  <div class="section-title">Últimos valores registrados</div>
   <div class="kv"><span class="k"><span class="ico">📅</span>Fecha</span><span class="v" id="dpDate">-</span></div>
   <div class="kv"><span class="k"><span class="ico">⏰</span>Hora</span><span class="v" id="dpTime">-</span></div>
   <div class="kv"><span class="k"><span class="ico">🎯</span>Evento</span><span class="v" id="dpEvent">-</span></div>
@@ -259,6 +268,7 @@
   <div class="kv"><span class="k"><span class="ico">🔋</span>Batería</span><span class="v" id="dpBattery">-</span></div>
   <div class="kv"><span class="k"><span class="ico">📍</span>Lat/Lon</span><span class="v" id="dpLatLon">-</span></div>
   <div class="kv"><span class="k"><span class="ico">🏠</span>Dirección</span><span class="v" id="dpAddress">-</span></div>
+
 </div>
 
 
@@ -286,6 +296,44 @@
         </div>
       </div>
     </aside>
+
+
+<!-- EDIT PANEL (derecha) -->
+<aside id="editPanel" class="right-drawer hidden">
+  <header>
+    <h3>Editar vehículo</h3>
+    <button id="btnCloseEdit" class="btn btn-sm">×</button>
+  </header>
+  <div class="content">
+    <label>Dispositivo
+      <select id="editDeviceSelect"></select>
+    </label>
+
+    <div class="grid2" style="margin-top:8px">
+      <label>Nombre<br/><input id="editName" type="text" placeholder="Camión 1" /></label>
+      <label>Patente<br/><input id="editPlate" type="text" placeholder="AB123CD" /></label>
+    </div>
+
+    <div class="grid2" style="margin-top:8px">
+      <label>Marca<br/><input id="editBrand" type="text" placeholder="Mercedes-Benz" /></label>
+      <label>Modelo<br/><input id="editModel" type="text" placeholder="Actros 2540" /></label>
+    </div>
+
+    <div class="grid2" style="margin-top:8px">
+      <label>Color<br/><input id="editColor" type="text" placeholder="Blanco" /></label>
+      <label>Color HEX<br/><input id="editColorHex" type="color" /></label>
+    </div>
+
+    <div style="margin-top:12px">
+      <button id="btnSaveMeta" class="btn btn-primary btn-sm">Guardar</button>
+      <button id="btnCancelMeta" class="btn btn-secondary btn-sm">Cancelar</button>
+    </div>
+    <div id="editMsg" class="muted mt-s"></div>
+  </div>
+</aside>
+
+
+
   </main>
 
   <!-- FOOTER solo para login -->
@@ -301,6 +349,7 @@
   <script type="module" src="./utils.js"></script>
   <script type="module" src="./api.js"></script>
   <script type="module" src="./app.js"></script>
+  <script type="module" src="./editor.js"></script>
   <script type="module" src="./load-csv.js"></script>
 
   <!-- LEFT STATUS SIDEBAR (FIJA / OCULTA EN LOGIN) -->

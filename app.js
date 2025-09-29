@@ -2,7 +2,8 @@ import { API_BASE, showToast, parseDevicesInput, carIconByEvent, eventLabel, fmt
 import { apiLogin, apiLastReading, apiReadingsRange } from './api.js';
 import { initCSVModule } from './load-csv.js';
 
-
+let deviceMeta = {}; // id -> meta del user (name, plate, brand, model, color, colorHex, ...)
+let loginPassword = null;
 let map, user, token;
 let markers = {};
 let devices = [];
@@ -16,6 +17,7 @@ let lastInfo = {};            // id -> {ev, ts:Date, lat, lon, stale:boolean}
 let transitIds = [];
 let detenidoIds = [];
 let sinRepIds = [];
+let fleetMarkersHidden = false;
 
 const normDeg = (d) => ((d % 360) + 360) % 360;
 // Offset si tu SVG apunta al Este (→). Si tu SVG apunta al Norte (↑), dejalo en 0.
@@ -47,6 +49,38 @@ function openPanel(id) {
   el(id).classList.remove('hidden');
 }
 
+function hideFleetMarkers() {
+  if (!map || fleetMarkersHidden) return;
+  Object.values(markers).forEach(m => {
+    if (m && map.hasLayer(m)) map.removeLayer(m);
+  });
+  fleetMarkersHidden = true;
+}
+
+function showFleetMarkers() {
+  if (!map || !fleetMarkersHidden) return;
+  Object.values(markers).forEach(m => {
+    if (m && !map.hasLayer(m)) m.addTo(map);
+  });
+  fleetMarkersHidden = false;
+}
+
+function getDeviceMeta(id) {
+  if (!id) return null;
+  const key = String(id);
+  return deviceMeta && typeof deviceMeta === 'object' ? deviceMeta[key] || null : null;
+}
+
+function getDisplayName(id) {
+  const m = getDeviceMeta(id);
+  return (m && m.name) ? String(m.name) : String(id);
+}
+
+function setText(id, val) {
+  const n = el(id);
+  if (n) n.textContent = (val == null || val === '') ? '-' : String(val);
+}
+
 // atajos
 function showSearch()   { openPanel('searchPanel'); }
 function hideSearch()   { el('searchPanel').classList.add('hidden'); }
@@ -68,6 +102,17 @@ function bearingDeg([lat1, lon1], [lat2, lon2]) {
   const x = Math.cos(φ1)*Math.sin(φ2) - Math.sin(φ1)*Math.cos(φ2)*Math.cos(Δλ);
   return (toDeg(Math.atan2(y, x)) + 360) % 360;
 }
+
+// === Bridge mínimo para editor.js ===
+window.App = {
+  get state() { return { user, token, devices, deviceMeta, markers, currentDevice, loginPassword }; },
+  setDeviceMeta(newMeta) { deviceMeta = newMeta; },
+  getDisplayName,
+  getDeviceMeta,
+  renderFleet
+};
+
+
 
 // Usa el SVG de assets y lo rota con CSS
 function makeArrowIcon(angleDeg) {
@@ -169,47 +214,53 @@ function fmtBattery(v) {
 }
 
 function ensureMarker(deviceId, lat, lon, ev) {
-  let iconUrl;
-  
-  // Manejar caso especial para vehículos sin reportar (>5h)
-  if (ev === 'stale') {
-    iconUrl = 'assets/car-gray.svg';
-  } else {
-    // Usar la función original para otros casos
-    iconUrl = carIconByEvent(ev);
-  }
-  
+  let iconUrl = (ev === 'stale') ? 'assets/car-gray.svg' : carIconByEvent(ev);
+
   const icon = L.icon({
-    iconUrl: iconUrl,
+    iconUrl,
     iconSize: [36, 36],
     iconAnchor: [18, 18],
   });
-  
+
   if (markers[deviceId]) {
-    markers[deviceId].setLatLng([lat, lon]).setIcon(icon);
-    // Actualizar también el tooltip
-    markers[deviceId].unbindTooltip();
-    markers[deviceId].bindTooltip(deviceId, {
+    const m = markers[deviceId];
+    m.setLatLng([lat, lon]).setIcon(icon);
+
+    // Si estaba oculto, NO lo re-agregamos. Si no, aseguramos que esté en el mapa.
+    if (!fleetMarkersHidden && !map.hasLayer(m)) {
+      m.addTo(map);
+    }
+
+    // tooltip con el displayName actual
+    const label = getDisplayName(deviceId);
+    m.unbindTooltip();
+    m.bindTooltip(label, {
       permanent: true,
       direction: 'bottom',
       offset: [0, 10],
       className: 'marker-label'
     });
+
   } else {
-    const m = L.marker([lat, lon], { icon }).addTo(map);
-    
-    // Agregar tooltip con el deviceID debajo del marcador
-    m.bindTooltip(deviceId, {
+    // Crear sin agregar al mapa si la flota está oculta
+    const m = L.marker([lat, lon], { icon });
+    const label = getDisplayName(deviceId);
+    m.bindTooltip(label, {
       permanent: true,
       direction: 'bottom',
       offset: [0, 10],
       className: 'marker-label'
     });
-    
     m.on('click', () => onMarkerClick(deviceId));
+
+    if (!fleetMarkersHidden) {
+      m.addTo(map);
+    }
     markers[deviceId] = m;
   }
 }
+
+
 
 // =================== marker click / detalles ===================
 async function onMarkerClick(deviceId) {
@@ -237,7 +288,24 @@ async function onMarkerClick(deviceId) {
 }
 
 function fillDetailsPanel({ deviceId, ts, ev, v, sg, lat, lon, bt }) {
-  el('dpDevice').textContent = deviceId;
+const display = getDisplayName(deviceId);
+el('dpDevice').textContent = `${display} (${deviceId})`;
+
+// meta
+const meta = getDeviceMeta(deviceId) || {};
+setText('dpPlate', meta.plate);
+setText('dpBrand', meta.brand);
+setText('dpModel', meta.model);
+setText('dpColor', meta.color);
+
+// opcional: si querés colorear “Color” con el hex
+if (meta.colorHex) {
+  const c = el('dpColor');
+  if (c) {
+    c.innerHTML = `<span style="display:inline-block;width:12px;height:12px;border-radius:50%;vertical-align:middle;margin-right:6px;border:1px solid #ccc;background:${meta.colorHex}"></span>${meta.color || meta.colorHex}`;
+  }
+}
+
   el('dpDate').textContent   = fmtDate(ts);
   el('dpTime').textContent   = fmtTime(ts);
   el('dpEvent').textContent  = eventLabel(ev);
@@ -339,7 +407,9 @@ async function loadLastPoints(ids) {
     transitIds, detenidoIds, sinRepIds
   });
 
-  if (bounds.length) map.fitBounds(bounds, { padding: [24, 24] });
+if (!fleetMarkersHidden && bounds.length) {
+  map.fitBounds(bounds, { padding: [24, 24] });
+}
 }
 
 function updateStatusPanel({ username, total, transitIds, detenidoIds, sinRepIds }) {
@@ -377,9 +447,11 @@ function renderFleet(ids) {
   const ul = el('fleetList');
 
   // Construye la lista
-  ul.innerHTML = ids.map(id =>
-    `<li><strong>${id}</strong> <button data-id="${id}" class="btn">Ver</button></li>`
-  ).join('');
+ul.innerHTML = ids.map(id => {
+  const name = getDisplayName(id);
+  return `<li><strong>${name}</strong> <span class="muted">(${id})</span> <button data-id="${id}" class="btn">Ver</button></li>`;
+}).join('');
+
 
   // Un único handler, no { once:true }, no addEventListener duplicados
   ul.onclick = (ev) => {
@@ -425,6 +497,7 @@ function clearRoute() {
 }
 
 function drawRoute(points) {
+  hideFleetMarkers();
   clearRoute();
   if (!points.length) { showToast('No hay puntos en el rango'); return; }
 
@@ -444,18 +517,20 @@ function drawRoute(points) {
       weight: 1
     }).addTo(map);
 
-    const popupContent = `
-      <div class="route-popup">
-        <strong>Dispositivo:</strong> ${currentDevice}<br>
-        <strong>Fecha:</strong> ${fmtDate(p.ts)}<br>
-        <strong>Hora:</strong> ${fmtTime(p.ts)}<br>
-        <strong>Velocidad:</strong> ${p.v || 0} km/h<br>
-        <strong>Evento:</strong> ${eventLabel(p.ev)}<br>
-        <strong>Señal:</strong> ${p.sg || '-'}<br>
-        <strong>Coordenadas:</strong> ${p.lat.toFixed(6)}, ${p.lon.toFixed(6)}<br>
-        <strong>Batería:</strong> ${fmtBattery(parseBattery(p.Bt ?? p.bt ?? p.battery))}
-      </div>
-    `;
+const dispName = getDisplayName(currentDevice);
+const popupContent = `
+  <div class="route-popup">
+    <strong>Dispositivo:</strong> ${dispName} (${currentDevice})<br>
+    <strong>Fecha:</strong> ${fmtDate(p.ts)}<br>
+    <strong>Hora:</strong> ${fmtTime(p.ts)}<br>
+    <strong>Velocidad:</strong> ${p.v || 0} km/h<br>
+    <strong>Evento:</strong> ${eventLabel(p.ev)}<br>
+    <strong>Señal:</strong> ${p.sg || '-'}<br>
+    <strong>Coordenadas:</strong> ${p.lat.toFixed(6)}, ${p.lon.toFixed(6)}<br>
+    <strong>Batería:</strong> ${fmtBattery(parseBattery(p.Bt ?? p.bt ?? p.battery))}
+  </div>
+`;
+
     marker.bindPopup(popupContent, { closeButton: false });
     marker.on('mouseover', function() { this.openPopup(); });
     marker.on('mouseout',  function() { this.closePopup(); });
@@ -536,10 +611,10 @@ document.addEventListener('DOMContentLoaded', setupDateTimeInputs);
 // =================== fetch ruta ===================
 async function fetchAndDrawRange(deviceId, from, to) {
   try {
+    console.log('[RANGE] local:', from, '→', to);
     const points = await apiReadingsRange(deviceId, from, to);
     if (!points.length) {
       showToast('No se encontraron puntos en el rango seleccionado');
-      setAuthDebug(`Sin resultados para ${deviceId} desde ${from.toString()} hasta ${to.toString()}`);
     } else {
       drawRoute(points);
       lastRange = { from, to };
@@ -550,6 +625,7 @@ async function fetchAndDrawRange(deviceId, from, to) {
     showToast('Error leyendo la ruta: ' + e.message);
   }
 }
+
 
 // =================== auth & acciones ===================
 async function onCreateUser() {
@@ -596,11 +672,14 @@ document.getElementById('menuExit').addEventListener('click', onLogout);
 async function onLogin() {
   const username = el('username').value.trim();
   const password = el('password').value.trim();
+  loginPassword = password; 
   if (!username || !password) { showToast('Usuario y contraseña requeridos'); return; }
 
   try {
     const res = await apiLogin({ username, password });
+    console.log('user ->', res.user);
     token = res.token; user = res.user;
+    deviceMeta = (user?.data?.devices_meta) || {};
     devices = (user?.data?.devices || []).map(String);
 
     showMapPane();
@@ -625,7 +704,6 @@ initCSVModule({
   }
 });
 
-    initCSVModule();
     // barra izquierda
     el('spUser').textContent = user?.username || '-';
     showStatus();
@@ -641,28 +719,35 @@ initCSVModule({
     if (String(e).includes('TypeError')) showToast('Error de red/CORS. Ver consola.');
     else showToast('Login falló');
   }
+  window.dispatchEvent(new CustomEvent('app:logged-in', { detail: { user } }));
+
 }
 
 
 function onLogout() {
   token = null; user = null; devices = []; markers = {};
+  deviceMeta = {};
   showAuthPane();
-  // ocultar barra izquierda
   document.getElementById('statusPanel').classList.add('hidden');
   showToast('Sesión cerrada');
+  window.dispatchEvent(new Event('app:logged-out'));
+
 }
+
 
 
 function onRefresh() {
   if (!devices.length) { showToast('No hay dispositivos'); return; }
-  // 1) limpiar ruta y cerrar paneles derechos (la barra izquierda queda fija)
   clearRoute();
   hideDetails();
   hideSearch();
   hideFleet();
-  // 2) recargar últimos puntos y recuadrar
+
+  // volver a mostrar autos y recargar
+  showFleetMarkers();
   loadLastPoints(devices);
 }
+
 
 
 // chips "Ver hoy"
@@ -671,10 +756,12 @@ function onChipsClick(ev) {
   if (!b || !currentDevice) return;
   const minutes = Number(b.getAttribute('data-min') || 0);
   if (!minutes) return;
-  const to = new Date();
+  const to   = new Date();               // hora local
   const from = new Date(to.getTime() - minutes * 60 * 1000);
+  console.log('[Ver hoy]', { device: currentDevice, fromLocal: from, toLocal: to });
   fetchAndDrawRange(currentDevice, from, to);
 }
+
 
 // rango manual
 function onApplyRange() {
@@ -823,6 +910,11 @@ async function onDownloadCsv() {
 
 // =================== wire-up ===================
 el('btnLogin').addEventListener('click', onLogin);
+
+document.getElementById('loginForm')?.addEventListener('submit', (e) => {
+  e.preventDefault();
+  onLogin();
+});
 el('btnRefresh').addEventListener('click', onRefresh);
 el('btnSearch').addEventListener('click', showSearch);
 el('btnDoSearch').addEventListener('click', () => {
@@ -838,7 +930,14 @@ el('btnCloseSearch').addEventListener('click', hideSearch);
 el('btnFleet').addEventListener('click', showFleet);
 el('btnCloseFleet').addEventListener('click', hideFleet);
 
-el('btnCloseDetails').addEventListener('click', () => { hideDetails(); clearRoute(); });
+el('btnCloseDetails').addEventListener('click', async () => {
+  hideDetails();
+  clearRoute();
+  // volver a mostrar autos y refrescar últimos puntos
+  showFleetMarkers();
+  if (devices?.length) await loadLastPoints(devices);
+});
+
 el('btnApplyRange').addEventListener('click', onApplyRange);
 el('btnDownload').addEventListener('click', onDownloadCsv);
 

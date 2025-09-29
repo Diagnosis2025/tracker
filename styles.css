@@ -288,9 +288,8 @@ body.sidebar-collapsed #mapPane{
   position: absolute;
   top: 100%;
   left: 0;
-  min-width: 240px;
-  background: #fff;
-  border: 1px solid #e5e7eb;
+  min-width: 140px;
+
   border-radius: 8px;
   box-shadow: 0 10px 24px rgba(0,0,0,.12);
   padding: 6px;
@@ -303,6 +302,20 @@ body.sidebar-collapsed #mapPane{
   margin: 4px 0;
 }
 .btn-ghost { background: transparent; }
+
+/* caret en el botón */
+#btnMenu::after {
+  content: "▾";       /* también podés usar "▼" o "⌄" */
+  display: inline-block;
+  margin-left: 8px;
+  transition: transform 0.2s ease;
+}
+
+/* cuando el dropdown está abierto, giramos el caret */
+.dropdown.open #btnMenu::after {
+  transform: rotate(180deg);
+}
+
 
 /* Si ya tenías estilos para .details-panel, podés dejarlos;
    esto asegura que Buscar/Mi flota usen el mismo layout a la derecha */
@@ -487,3 +500,125 @@ body.sidebar-collapsed #mapPane{
   }
 
   
+  
+/* =========================
+   RESPONSIVE / MOBILE FIXES
+   ========================= */
+
+/* Tablet */
+@media (max-width: 1024px) {
+  :root{
+    --topbar-h: 64px;
+  }
+  /* Topbar fija arriba */
+  .topbar{
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: var(--topbar-h);
+    z-index: 1200;
+    padding: 8px 10px;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  /* Mapa ocupa toda la pantalla por debajo de la topbar */
+  #mapPane{
+    padding-left: 0 !important;   /* ignora sidebar en pantallas chicas */
+    padding-top: var(--topbar-h);
+    height: calc(100vh - var(--topbar-h));
+  }
+  #map{
+    position: absolute;
+    inset: 0;
+  }
+  /* Sidebar izquierda fuera en móvil */
+  .left-sidebar{ display: none !important; }
+  body.sidebar-collapsed #mapPane{ padding-left: 0; }
+
+  /* Toolbar: scroll horizontal si no entra */
+  .topbar .toolbar{
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    gap: 6px;
+  }
+
+  /* Menos ruido en móvil */
+  .units{ display: none; }
+  .brand span{ font-size: 14px; }
+
+  /* Paneles derechos como bottom-sheet */
+  .right-drawer,
+  .details-panel{
+    top: auto !important;
+    bottom: 0;
+    right: 0; left: 0;
+    width: 100vw !important;
+    height: 60vh;                /* bottom sheet alto */
+    border-left: 0;
+    border-top: 1px solid #e5e7eb;
+    border-radius: 12px 12px 0 0;
+    box-shadow: 0 -10px 24px rgba(0,0,0,.12);
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+  .details-header .big{ font-size: 18px; }
+  .details-actions{ gap: 10px; }
+
+  /* Grids a una columna */
+  .grid2, .grid4{ grid-template-columns: 1fr !important; }
+
+  /* Dropdown del menú: abierto hacia la derecha si falta espacio */
+  .dropdown{ position: relative; }
+  .dropdown-content{
+    left: auto; right: 0; min-width: 180px;
+    max-height: 60vh; overflow-y: auto;
+    z-index: 2000;
+  }
+
+  /* Controles Leaflet más cómodos al tacto */
+  .leaflet-bottom.leaflet-right{ right: 12px; bottom: 16px; }
+  .leaflet-control-zoom a{
+    width: 40px; height: 40px; line-height: 40px; font-size: 20px;
+  }
+  .marker-label{ font-size: 11px; padding: 2px 6px; }
+}
+
+/* Teléfono chico */
+@media (max-width: 768px){
+  :root{ --topbar-h: 56px; }
+
+  .btn{ padding: 8px 10px; font-size: 14px; }
+  .btn-sm{ padding: 6px 8px; font-size: 13px; }
+
+  /* Panel de detalles: filas más compactas */
+  .kv{ padding: 6px 0; }
+  .kv .k{ font-size: 14px; }
+  .details-body{ gap: 4px; }
+
+  /* Popups más legibles */
+  .route-popup{ font-size: 12px; }
+  .route-popup strong{ width: 72px; }
+}
+
+/* Teléfono muy chico / alta densidad */
+@media (max-width: 420px){
+  .topbar{ padding: 6px 8px; gap: 6px; }
+  .brand span{ display: none; } /* dejá solo el ícono en ultra-chico */
+  #btnSearch, #btnFleet{ font-size: 13px; padding: 8px 10px; }
+
+  .right-drawer, .details-panel{ height: 65vh; }
+
+  /* Inputs ocupan todo el ancho */
+  input, .chip, .btn{ width: 100%; }
+  .chips{ gap: 8px; }
+}
+
+/* iPhone con notch / safe area */
+@supports (padding: max(0px)) {
+  .topbar{
+    padding-left: max(12px, env(safe-area-inset-left));
+    padding-right: max(12px, env(safe-area-inset-right));
+  }
+  .right-drawer, .details-panel{
+    padding-bottom: max(14px, env(safe-area-inset-bottom));
+  }
+}
