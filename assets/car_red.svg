@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" fill="none">
+  <!-- Background transparent -->
+  <g id="car">
+    <!-- Car body -->
+    <rect x="20" y="48" rx="12" ry="12" width="88" height="32" fill="#ef4444"/>
+    <!-- Cabin -->
+    <path d="M38 48 L64 32 L94 32 L108 48 Z" fill="#ef4444"/>
+    <!-- Windows -->
+    <path d="M44 48 L64 36 L90 36 L100 48 Z" fill="#ffffff" fill-opacity="0.85"/>
+    <!-- Wheels -->
+    <circle cx="40" cy="86" r="12" fill="#111111"/>
+    <circle cx="40" cy="86" r="6" fill="#ffffff"/>
+    <circle cx="96" cy="86" r="12" fill="#111111"/>
+    <circle cx="96" cy="86" r="6" fill="#ffffff"/>
+    <!-- Headlights -->
+    <rect x="18" y="60" width="6" height="8" rx="2" fill="#ffd166"/>
+    <rect x="104" y="60" width="6" height="8" rx="2" fill="#ffd166"/>
+  </g>
+</svg>

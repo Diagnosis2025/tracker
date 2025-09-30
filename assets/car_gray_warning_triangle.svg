@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" fill="none">
+  
+  <!-- Car base (gray) -->
+  <rect x="20" y="56" rx="12" ry="12" width="88" height="32" fill="#9ca3af"/>
+  <path d="M38 56 L64 40 L94 40 L108 56 Z" fill="#9ca3af"/>
+  <path d="M44 56 L64 44 L90 44 L100 56 Z" fill="#ffffff" fill-opacity="0.85"/>
+  <circle cx="40" cy="94" r="12" fill="#111111"/>
+  <circle cx="40" cy="94" r="6" fill="#ffffff"/>
+  <circle cx="96" cy="94" r="12" fill="#111111"/>
+  <circle cx="96" cy="94" r="6" fill="#ffffff"/>
+  <rect x="18" y="68" width="6" height="8" rx="2" fill="#ffd166"/>
+  <rect x="104" y="68" width="6" height="8" rx="2" fill="#ffd166"/>
+
+  <!-- Big disconnection logo: red X inside a circle -->
+  <circle cx="64" cy="20" r="18" fill="#ffffff" stroke="#ef4444" stroke-width="4"/>
+  <line x1="54" y1="10" x2="74" y2="30" stroke="#ef4444" stroke-width="5" stroke-linecap="round"/>
+  <line x1="74" y1="10" x2="54" y2="30" stroke="#ef4444" stroke-width="5" stroke-linecap="round"/>
+</svg>

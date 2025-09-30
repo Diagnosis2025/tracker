@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" fill="none">
+  <!-- Car (red) -->
+  <g id="car">
+    <rect x="20" y="56" rx="12" ry="12" width="88" height="32" fill="#ef4444"/>
+    <path d="M38 56 L64 40 L94 40 L108 56 Z" fill="#ef4444"/>
+    <path d="M44 56 L64 44 L90 44 L100 56 Z" fill="#ffffff" fill-opacity="0.85"/>
+    <circle cx="40" cy="94" r="12" fill="#111111"/>
+    <circle cx="40" cy="94" r="6" fill="#ffffff"/>
+    <circle cx="96" cy="94" r="12" fill="#111111"/>
+    <circle cx="96" cy="94" r="6" fill="#ffffff"/>
+    <rect x="18" y="68" width="6" height="8" rx="2" fill="#ffd166"/>
+    <rect x="104" y="68" width="6" height="8" rx="2" fill="#ffd166"/>
+  </g>
+
+  <!-- Even bigger SOS text above car -->
+  <text x="64" y="30" text-anchor="middle" font-size="40" font-weight="900" fill="#ef4444">SOS</text>
+</svg>

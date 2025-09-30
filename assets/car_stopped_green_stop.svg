@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" fill="none">
+  <!-- Badge circle -->
+  <g id="badge">
+    <circle cx="64" cy="24" r="20" fill="#ffffff" />
+    <circle cx="64" cy="24" r="20" fill="none" stroke="#ef4444" stroke-width="4"/>
+    <!-- Pause bars centered -->
+    <rect x="58" y="14" width="6" height="20" rx="2" fill="#ef4444"/>
+    <rect x="70" y="14" width="6" height="20" rx="2" fill="#ef4444"/>
+  </g>
+  
+  <!-- Car base (green) -->
+  <rect x="20" y="56" rx="12" ry="12" width="88" height="32" fill="#22c55e"/>
+  <path d="M38 56 L64 40 L94 40 L108 56 Z" fill="#22c55e"/>
+  <path d="M44 56 L64 44 L90 44 L100 56 Z" fill="#ffffff" fill-opacity="0.85"/>
+  <circle cx="40" cy="94" r="12" fill="#111111"/>
+  <circle cx="40" cy="94" r="6" fill="#ffffff"/>
+  <circle cx="96" cy="94" r="12" fill="#111111"/>
+  <circle cx="96" cy="94" r="6" fill="#ffffff"/>
+  <rect x="18" y="68" width="6" height="8" rx="2" fill="#ffd166"/>
+  <rect x="104" y="68" width="6" height="8" rx="2" fill="#ffd166"/>
+
+</svg>
