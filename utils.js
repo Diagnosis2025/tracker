@@ -71,11 +71,15 @@ export function carIconByEvent(ev) {
   
   switch (eventNum) {
     case 10: // en movimiento
+      return 'assets/car_moving_green_play.svg';
     case 31: // movimiento
-      return 'assets/car-green.svg';
+      return 'assets/car_moving_green_play.svg';
     case 11: // detenido
+      return 'assets/car_stopped_green_stop.svg';
+    case 210: // en movimiento
+      return 'assets/car_red_panic_sos.svg';
     case 30: // detenido
-      return 'assets/car-red.svg';
+      return 'assets/car_yellow.svg';
     default:
       return 'assets/car-blue.svg';
   }

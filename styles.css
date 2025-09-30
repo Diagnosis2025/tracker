@@ -499,8 +499,47 @@ body.sidebar-collapsed #mapPane{
     justify-content: center;
   }
 
-  
-  
+  /* Botón */
+.refs-btn {
+  margin-left: 12px;
+  padding: 6px 10px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+/* Wrapper ancla (en la toolbar) */
+.refs-wrap { position: relative; }
+
+/* Dropdown alineado arriba a la derecha del botón */
+.refs-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;           /* 👈 clave para que salga a la derecha */
+  left: auto;
+  background: #ffffff;
+  min-width: 300px;
+  max-width: 360px;
+  border: 1px solid #eaeaea;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.12);
+  border-radius: 10px;
+  z-index: 1100;
+  padding: 8px 0;
+}
+
+/* contenido */
+.refs-header { font-weight: 600; padding: 10px 14px; border-bottom: 1px solid #f0f0f0; color: #374151; }
+.refs-item   { display: flex; align-items: center; gap: 10px; padding: 10px 14px; }
+.refs-item:hover { background: #f9fafb; }
+.refs-item img { width: 36px; height: 36px; flex: 0 0 28px; }
+.refs-text { display: flex; flex-direction: column; line-height: 1.2; }
+.refs-title { font-size: 16px; color: #111827; }
+.refs-path  { font-size: 14px; color: #6b7280; }
+
+
+
 /* =========================
    RESPONSIVE / MOBILE FIXES
    ========================= */
