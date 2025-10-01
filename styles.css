@@ -552,464 +552,112 @@ body.sidebar-collapsed #mapPane{
 /* =========================
    RESPONSIVE / MOBILE FIXES
    ========================= */
+/* ========== FIXES APP BAR & DETAILS PANEL ========== */
 
-/* Tablet y móviles grandes (hasta 1024px) */
-@media (max-width: 1024px) {
-  :root {
-    --topbar-h: 60px;
-  }
-
-  /* Topbar fija y más compacta */
-  .topbar {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: var(--topbar-h);
-    z-index: 1200;
-    padding: 8px 12px;
-    gap: 8px;
-  }
-
-  .topbar .toolbar {
-    gap: 6px;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none; /* Firefox */
-  }
-  
-  .topbar .toolbar::-webkit-scrollbar {
-    display: none; /* Chrome, Safari */
-  }
-
-  /* Ocultar elementos menos importantes en móvil */
-  .units {
-    display: none;
-  }
-
-  /* Mapa ocupa toda la pantalla */
-  #mapPane {
-    padding-left: 0 !important;
-    padding-top: var(--topbar-h);
-    height: calc(100vh - var(--topbar-h));
-    position: fixed;
-    top: var(--topbar-h);
-    left: 0;
-    right: 0;
-    bottom: 0;
-  }
-
-  #map {
-    position: absolute;
-    inset: 0;
-  }
-
-  /* Ocultar sidebar izquierda en móvil */
-  .left-sidebar {
-    display: none !important;
-  }
-
-  /* Paneles derechos como bottom sheets */
-  .right-drawer,
-  .details-panel {
-    position: fixed !important;
-    top: auto !important;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    width: 100vw !important;
-    max-height: 75vh;
-    height: auto;
-    border-left: 0;
-    border-top: 2px solid #e5e7eb;
-    border-radius: 16px 16px 0 0;
-    box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.15);
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  /* Header de paneles más espacioso para táctil */
-  .right-drawer header,
-  .details-header {
-    padding: 16px;
-    position: sticky;
-    top: 0;
-    background: #fff;
-    z-index: 10;
-  }
-
-  /* Añadir "manija" visual en bottom sheets */
-  .right-drawer::before,
-  .details-panel::before {
-    content: '';
-    position: absolute;
-    top: 8px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 40px;
-    height: 4px;
-    background: #cbd5e1;
-    border-radius: 2px;
-  }
-
-  /* Botones más grandes para táctil */
-  .btn {
-    min-height: 44px;
-    padding: 10px 14px;
-    font-size: 15px;
-  }
-
-  .btn-sm {
-    min-height: 36px;
-    padding: 8px 12px;
-    font-size: 14px;
-  }
-
-  /* Inputs más grandes */
-  input, select {
-    min-height: 44px;
-    padding: 12px;
-    font-size: 16px; /* Evita zoom en iOS */
-  }
-
-  /* Grids a columna única */
-  .grid2 {
-    grid-template-columns: 1fr !important;
-    gap: 12px;
-  }
-
-  /* Panel de detalles */
-  .details-body {
-    padding: 16px;
-  }
-
-  .kv {
-    padding: 12px 0;
-    font-size: 15px;
-  }
-
-  .details-actions {
-    padding: 16px;
-  }
-
-  .chips {
-    gap: 8px;
-  }
-
-  .chip {
-    padding: 10px 14px;
-    font-size: 14px;
-    min-height: 40px;
-  }
-
-  /* Controles de mapa más accesibles */
-  .leaflet-bottom.leaflet-right {
-    right: 16px;
-    bottom: 20px;
-  }
-
-  .leaflet-control-zoom a {
-    width: 44px;
-    height: 44px;
-    line-height: 44px;
-    font-size: 22px;
-  }
-
-  /* Dropdown del menú */
-  .dropdown-content {
-    left: auto;
-    right: 0;
-    min-width: 220px;
-  }
-
-  .dropdown-content a {
-    padding: 14px 18px;
-    font-size: 15px;
-  }
-
-  /* Referencias dropdown */
-  .refs-dropdown {
-    position: fixed;
-    top: var(--topbar-h);
-    right: 0;
-    left: 0;
-    width: 100vw;
-    max-width: none;
-    border-radius: 0;
-    max-height: calc(100vh - var(--topbar-h));
-    overflow-y: auto;
-  }
-
-  .refs-item {
-    padding: 14px 16px;
-  }
-
-  /* Panel de informes */
-  #reportsPanel {
-    max-height: 80vh;
-  }
-
-  /* Popups más legibles */
-  .route-popup {
-    font-size: 13px;
-    line-height: 1.5;
-  }
-
-  /* Tooltips de marcadores */
-  .marker-label {
-    font-size: 12px;
-    padding: 4px 8px;
-  }
-}
-
-/* Móviles medianos (hasta 768px) */
-@media (max-width: 768px) {
-  :root {
-    --topbar-h: 56px;
-  }
-
-  .topbar {
-    padding: 6px 10px;
-  }
-
-  .brand {
-    gap: 8px;
-  }
-
-  .brand-icon {
-    width: 24px;
-    height: 24px;
-  }
-
-  .brand span {
-    font-size: 15px;
-  }
-
-  /* Botones más compactos */
-  .btn {
-    padding: 8px 12px;
-    font-size: 14px;
-  }
-
-  /* Panel de detalles más compacto */
-  .details-header .big {
-    font-size: 18px;
-  }
-
-  .kv {
-    padding: 10px 0;
-  }
-
-  .kv .k {
-    font-size: 14px;
-  }
-
-  .kv .v {
-    font-size: 14px;
-  }
-
-  /* Grupos de acciones más compactos */
-  .group-title {
-    font-size: 14px;
-    margin-bottom: 10px;
-  }
-
-  .section-title {
-    font-size: 13px;
-    margin: 12px 0 8px;
-  }
-
-  /* Chips más pequeños */
-  .chip {
-    padding: 8px 12px;
-    font-size: 13px;
-    min-height: 36px;
-  }
-
-  /* Bottom sheets un poco más altos */
-  .right-drawer,
-  .details-panel {
-    max-height: 80vh;
-  }
-
-  /* Lista de flota */
-  #fleetList li {
-    padding: 12px;
-    font-size: 14px;
-  }
-
-  #fleetList button {
-    padding: 8px 12px;
-    font-size: 13px;
-  }
-}
-
-/* Móviles pequeños (hasta 480px) */
+/* 1) En móviles: que los botones de la TOPBAR NO ocupen 100% de ancho */
 @media (max-width: 480px) {
-  .topbar {
-    padding: 6px 8px;
-  }
-
-  /* Ocultar texto de marca, solo ícono */
-  .brand span {
-    display: none;
-  }
-
-  /* Botones de toolbar más compactos */
-  .topbar .btn {
-    padding: 8px 10px;
+  .topbar .btn,
+  .topbar .dropdown > .btn,
+  .topbar .refs-btn {
+    width: auto !important;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 10px;   /* coherente con tus reglas */
     font-size: 13px;
+    min-height: 36px;
+    line-height: 1.2;
+    white-space: nowrap;
+    flex: 0 0 auto;
   }
 
-  /* Menú dropdown ocupa casi toda la pantalla */
-  .dropdown-content {
-    min-width: calc(100vw - 32px);
-    right: 8px;
+  /* Evitar que el contenedor “estire” los botones */
+  .topbar .toolbar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
   }
+}
 
-  /* Bottom sheets más altos en pantallas chicas */
-  .right-drawer,
-  .details-panel {
-    max-height: 85vh;
-  }
+/* 2) En tablets/móviles: asegurar layout correcto del header de paneles
+      y que la X esté visible y clickeable */
+.right-drawer header,
+.details-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
 
-  /* Contenido más compacto */
-  .details-body,
-  .details-actions,
-  .right-drawer .content {
-    padding: 12px;
-  }
+/* Botón de cerrar siempre a la derecha, tamaño compacto */
+.right-drawer header .btn-sm,
+.details-header .btn-sm {
+  flex: 0 0 auto;
+  width: auto !important;
+  min-width: 36px;
+  min-height: 36px;
+  padding: 6px 10px;
+  font-size: 14px;
+  line-height: 1;
+}
 
-  /* Inputs ocupan todo el ancho */
-  input,
-  select,
-  .btn {
+/* 3) La “manija” del bottom-sheet no debe bloquear clicks */
+.right-drawer::before,
+.details-panel::before {
+  pointer-events: none;     /* ← importante */
+  z-index: 1;
+}
+
+/* Asegurar que el header quede por encima de la manija */
+.right-drawer header,
+.details-header {
+  position: sticky;
+  top: 0;
+  z-index: 2;               /* por encima del ::before */
+  background: #fff;
+}
+
+/* 4) Ajustes de tipografía para que la cabecera no “crezca” de más */
+.details-header .big {
+  font-size: 18px;
+  line-height: 1.2;
+  margin: 0;
+}
+
+/* 5) En móviles: no “estirar” botones fuera de paneles de contenido */
+@media (max-width: 480px) {
+  /* Tu regla original fuerza width:100% para .btn.
+     La limitamos solo a botones dentro de paneles / formularios,
+     NO a la topbar */
+  .right-drawer .btn,
+  .details-panel .btn {
     width: 100%;
   }
-
-  .chip {
-    flex: 1 1 calc(50% - 4px);
-    min-width: calc(50% - 4px);
-    text-align: center;
-  }
-
-  /* Grid de fechas más compacto */
-  .grid2 label {
-    font-size: 13px;
-  }
-
-  /* KV más compacto */
-  .kv {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 4px;
-    padding: 8px 0;
-  }
-
-  .kv .v {
-    padding-left: 24px; /* Alinear con el ícono */
-  }
-
-  /* Popups más pequeños */
-  .route-popup {
-    font-size: 12px;
-  }
-
-  .route-popup strong {
-    width: 70px;
-    font-size: 11px;
-  }
-
-  /* Controles de zoom */
-  .leaflet-control-zoom a {
-    width: 40px;
-    height: 40px;
-    line-height: 40px;
-    font-size: 20px;
-  }
-}
-
-/* iPhone con notch / safe areas */
-@supports (padding: max(0px)) {
-  .topbar {
-    padding-left: max(12px, env(safe-area-inset-left));
-    padding-right: max(12px, env(safe-area-inset-right));
-    padding-top: max(8px, env(safe-area-inset-top));
-  }
-
-  .right-drawer,
-  .details-panel {
-    padding-bottom: max(16px, env(safe-area-inset-bottom));
-  }
-
-  #mapPane {
-    padding-top: calc(var(--topbar-h) + env(safe-area-inset-top, 0px));
-  }
-}
-
-/* Landscape en móvil */
-@media (max-width: 1024px) and (orientation: landscape) {
-  .right-drawer,
-  .details-panel {
-    max-height: 90vh;
-  }
-
-  .topbar .toolbar {
-    gap: 4px;
-  }
-
+  /* Y explícitamente neutralizamos en la topbar */
   .topbar .btn {
-    padding: 6px 10px;
-    font-size: 13px;
+    width: auto !important;
   }
 }
 
-/* Dark mode (opcional, para usuarios que lo prefieran) */
-@media (prefers-color-scheme: dark) {
-  /* Descomenta si querés soporte dark mode automático */
-  /*
-  .right-drawer,
-  .details-panel {
-    background: #1f2937;
-    color: #f3f4f6;
-  }
-  
-  .details-header {
-    background: #111827;
-    border-bottom-color: #374151;
-  }
-  
-  input, select {
-    background: #374151;
-    color: #f3f4f6;
-    border-color: #4b5563;
-  }
-  */
+/* 6) Por si algún user-agent aplica estilos raros al botón de cerrar (×) */
+.btn.btn-sm {
+  cursor: pointer;
 }
 
-/* Prevenir zoom accidental en iOS en inputs */
-@supports (-webkit-touch-callout: none) {
-  input,
-  select,
-  textarea {
-    font-size: 16px !important;
-  }
+/* 7) Evitar que el título se coma el espacio del botón cerrar en pantallas chicas */
+.details-header > div:first-child {
+  min-width: 0;
+}
+.details-header .big {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-/* Smooth scroll para paneles */
-.right-drawer,
-.details-panel {
-  scroll-behavior: smooth;
-}
-
-/* Mejorar tap targets en móvil */
-@media (hover: none) and (pointer: coarse) {
-  button,
-  .btn,
-  a,
-  .chip,
-  .sp-row.clickable {
-    min-height: 44px;
-    min-width: 44px;
-  }
+/* 8) Alinear íconos/labels de los botones de la App Bar */
+.topbar .btn,
+.topbar .refs-btn {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
 }
