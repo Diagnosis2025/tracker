@@ -185,6 +185,7 @@
   <div id="menuContent" class="dropdown-content hidden">
     <a href="#" id="menuLoadCSV">Cargar rutas desde archivo .csv</a>
     <a href="#" id="menuEdit" class="hidden">Editar atributos</a>
+    <a href="#" id="menuReports">Informes</a>
     <a href="#" id="menuExit">Salir</a>
   </div>
 </div>
@@ -232,6 +233,13 @@
         </div>
       </div>
       <div class="refs-item">
+        <img src="assets/icon_descargando_arrow.svg" alt="Descargando" />
+        <div class="refs-text">
+          <div class="refs-title">Descargando datos</div>
+          <div class="refs-path">Descargando datos anteriores</div>
+        </div>
+      </div>
+      <div class="refs-item">
         <img src="assets/car_red_panic_sos.svg" alt="Vehículo en Pánico" />
         <div class="refs-text">
           <div class="refs-title">Vehículo en Pánico</div>
@@ -266,6 +274,53 @@
   <!-- MAP PANE -->
   <main id="mapPane" class="pane hidden">
     <div id="map"></div>
+
+
+<!-- REPORTS PANEL (derecha) -->
+<aside id="reportsPanel" class="right-drawer hidden">
+  <header>
+    <h3>Informe de Kilómetros</h3>
+    <button id="btnCloseReports" class="btn btn-sm">×</button>
+  </header>
+  <div class="content">
+    <label>Seleccionar vehículo
+      <select id="reportDeviceSelect">
+        <option value="">-- Elegir --</option>
+      </select>
+    </label>
+
+    <div class="grid2" style="margin-top:12px">
+      <label>Desde<br/><input id="reportFrom" type="datetime-local" /></label>
+      <label>Hasta<br/><input id="reportTo" type="datetime-local" /></label>
+    </div>
+
+    <button id="btnGenerateReport" class="btn btn-primary btn-sm" style="margin-top:12px">
+      Generar Informe
+    </button>
+
+    <div id="reportResult" class="report-result" style="margin-top:16px; display:none;">
+      <div class="section-title">Resultado</div>
+      <div class="kv">
+        <span class="k">🚗 Vehículo</span>
+        <span class="v" id="reportVehicleName">-</span>
+      </div>
+      <div class="kv">
+        <span class="k">📅 Período</span>
+        <span class="v" id="reportPeriod">-</span>
+      </div>
+      <div class="kv">
+        <span class="k">📏 Kilómetros recorridos</span>
+        <span class="v" id="reportKm" style="font-size:1.5em; font-weight:bold; color:#2563eb;">-</span>
+      </div>
+      <div class="kv">
+        <span class="k">📍 Puntos procesados</span>
+        <span class="v" id="reportPoints">-</span>
+      </div>
+    </div>
+
+    <div id="reportMsg" class="muted mt-s"></div>
+  </div>
+</aside>
 
     <!-- SEARCH PANEL (derecha) -->
     <aside id="searchPanel" class="right-drawer hidden">

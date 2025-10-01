@@ -1,4 +1,4 @@
-import { API_BASE, showToast, parseDevicesInput, carIconByEvent, eventLabel, fmtDate, fmtTime, downloadCsv, reverseGeocode, sleep } from './utils.js';
+import { API_BASE, showToast, parseDevicesInput, carIconByEvent, eventLabel, fmtDate, fmtTime, downloadCsv, reverseGeocode, sleep, haversineKm } from './utils.js';
 import { apiLogin, apiLastReading, apiReadingsRange } from './api.js';
 import { initCSVModule } from './load-csv.js';
 
@@ -348,17 +348,23 @@ async function enrichRouteWithAddresses(points) {
 async function loadLastPoints(ids) {
   if (!ids || !ids.length) { setUnitsCount(0); return; }
 
-  // reset de estructuras
-  lastInfo = {};
+  // reset
+  lastInfo   = {};
   transitIds = [];
   detenidoIds = [];
-  sinRepIds = [];
+  sinRepIds  = [];
+
+  // 👉 Sets para evitar duplicados
+  const transitSet  = new Set();
+  const detenidoSet = new Set();
+  const sinRepSet   = new Set();
 
   const now = Date.now();
   const isStale = (t) => (now - t) >= 5 * 3600 * 1000; // ≥5h
 
   let bounds = [];
-  for (const id of ids) {
+  for (const idRaw of ids) {
+    const id = String(idRaw).trim();   // 👉 normalizá el ID
     try {
       const js = await apiLastReading(id);
       const d = js?.data || {};
@@ -372,44 +378,153 @@ async function loadLastPoints(ids) {
       if (isFinite(lat) && isFinite(lon) && lat !== 0 && lon !== 0) {
         const nlat = lat > 0 ? -Math.abs(lat) : lat;
         const nlon = lon > 0 ? -Math.abs(lon) : lon;
-        
-        // SI tiene más de 5 horas, usar icono gris sin importar el evento
+
         if (stale) {
-          ensureMarker(id, nlat, nlon, 'stale'); // Usar evento especial para stale
+          ensureMarker(id, nlat, nlon, 'stale');
         } else {
           ensureMarker(id, nlat, nlon, ev);
         }
-        
         bounds.push([nlat, nlon]);
       }
 
-      // guardar info y clasificar - PRIORIDAD: stale > otros eventos
+      // clasificar (prioridad: stale)
       lastInfo[id] = { ev, ts, lat, lon, stale };
-      
-      if (stale) {
-        sinRepIds.push(id);
-      } else if (ev === 10 || ev === 31) {
-        transitIds.push(id);
-      } else if (ev === 11 || ev === 30) {
-        detenidoIds.push(id);
-      }
 
+      if (stale) {
+        sinRepSet.add(id);            // ✅ sin duplicados
+      } else if (ev === 10 || ev === 31) {
+        transitSet.add(id);
+      } else if (ev === 11 || ev === 30) {
+        detenidoSet.add(id);
+      }
     } catch (e) {
       console.error('last-reading error', id, e);
     }
   }
 
-  // contadores y barra de estado
+  // Pasá a arrays para el resto del código
+  transitIds  = Array.from(transitSet);
+  detenidoIds = Array.from(detenidoSet);
+  sinRepIds   = Array.from(sinRepSet);
+
   setUnitsCount(Object.keys(markers).length);
   updateStatusPanel({
     username: user?.username || '-',
-    total: ids.length,
+    total: Array.from(new Set(ids.map(x => String(x).trim()))).length, // total sin duplicados
     transitIds, detenidoIds, sinRepIds
   });
 
-if (!fleetMarkersHidden && bounds.length) {
-  map.fitBounds(bounds, { padding: [24, 24] });
+  if (!fleetMarkersHidden && bounds.length) {
+    map.fitBounds(bounds, { padding: [24, 24] });
+  }
 }
+
+
+// =================== INFORMES ===================
+function showReports() {
+  openPanel('reportsPanel');
+  populateReportDevices();
+  setupReportDateInputs();
+}
+
+function hideReports() {
+  el('reportsPanel').classList.add('hidden');
+  el('reportResult').style.display = 'none';
+}
+
+function populateReportDevices() {
+  const sel = el('reportDeviceSelect');
+  if (!sel) return;
+  
+  sel.innerHTML = '<option value="">-- Elegir --</option>' +
+    devices.map(id => {
+      const name = getDisplayName(id);
+      return `<option value="${id}">${name} (${id})</option>`;
+    }).join('');
+}
+
+function setupReportDateInputs() {
+  const now = new Date();
+  const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const pad = (n) => n.toString().padStart(2, '0');
+  const fmt = (d) => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  
+  const fromInput = el('reportFrom');
+  const toInput = el('reportTo');
+  if (fromInput && toInput) {
+    fromInput.value = fmt(weekAgo);
+    toInput.value = fmt(now);
+  }
+}
+
+async function generateKmReport() {
+  const deviceId = el('reportDeviceSelect').value;
+  const fromStr = el('reportFrom').value;
+  const toStr = el('reportTo').value;
+  
+  if (!deviceId) {
+    showToast('Seleccione un vehículo');
+    return;
+  }
+  if (!fromStr || !toStr) {
+    showToast('Complete ambas fechas');
+    return;
+  }
+  
+  const from = new Date(fromStr + ':00');
+  const to = new Date(toStr + ':00');
+  
+  if (isNaN(from.getTime()) || isNaN(to.getTime())) {
+    showToast('Fechas inválidas');
+    return;
+  }
+  if (to < from) {
+    showToast('La fecha "Hasta" debe ser posterior a "Desde"');
+    return;
+  }
+  
+  el('reportMsg').textContent = 'Calculando...';
+  el('reportResult').style.display = 'none';
+  
+  try {
+    const points = await apiReadingsRange(deviceId, from, to);
+    
+    if (!points || points.length === 0) {
+      el('reportMsg').textContent = 'No hay datos en el período seleccionado';
+      return;
+    }
+    
+    // Calcular distancia total
+    let totalKm = 0;
+    for (let i = 1; i < points.length; i++) {
+      const prev = points[i - 1];
+      const curr = points[i];
+      
+      if (prev.lat && prev.lon && curr.lat && curr.lon) {
+        const dist = haversineKm(prev.lat, prev.lon, curr.lat, curr.lon);
+        // Filtrar saltos irreales (más de 5 km entre puntos consecutivos)
+        if (dist < 5) {
+          totalKm += dist;
+        }
+      }
+    }
+    
+    // Mostrar resultado
+    const vehicleName = getDisplayName(deviceId);
+    el('reportVehicleName').textContent = `${vehicleName} (${deviceId})`;
+    el('reportPeriod').textContent = `${fmtDate(from)} ${fmtTime(from)} → ${fmtDate(to)} ${fmtTime(to)}`;
+    el('reportKm').textContent = `${totalKm.toFixed(2)} km`;
+    el('reportPoints').textContent = points.length;
+    el('reportResult').style.display = 'block';
+    el('reportMsg').textContent = '';
+    
+    showToast(`Informe generado: ${totalKm.toFixed(2)} km`);
+    
+  } catch (e) {
+    console.error('Error generando informe:', e);
+    el('reportMsg').textContent = 'Error: ' + e.message;
+    showToast('Error al generar el informe');
+  }
 }
 
 function updateStatusPanel({ username, total, transitIds, detenidoIds, sinRepIds }) {
@@ -668,7 +783,14 @@ if (btnMenu && menuContent) {
 
 // Configurar opciones del menú
 document.getElementById('menuExit').addEventListener('click', onLogout);
+// Informes
+document.getElementById('menuReports')?.addEventListener('click', (e) => {
+  e.preventDefault();
+  showReports();
+});
 
+el('btnCloseReports')?.addEventListener('click', hideReports);
+el('btnGenerateReport')?.addEventListener('click', generateKmReport);
 // ===== Referencias (dropdown a la izquierda) =====
 const btnRefs = document.getElementById('btnRefs');
 const refsContent = document.getElementById('refsContent');
