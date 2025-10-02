@@ -1137,3 +1137,89 @@ body.sidebar-collapsed #mapPane{
 #menuContent { right: auto !important; left: 50% !important; transform: translateX(-50%) !important; }
 /* Asegurar referencias a la derecha siempre */
 #refsContent { right: 12px !important; left: auto !important; }
+/* ================================
+   MOBILE (<=480px) — REPORTS PANEL
+   ================================ */
+@media (max-width: 480px) {
+  /* Panel como bottom-sheet */
+  #reportsPanel {
+    position: fixed !important;
+    top: auto; bottom: 0; left: 0; right: 0;
+    width: 100vw !important;
+    max-height: 80vh;                 /* no tapa toda la pantalla */
+    height: auto;
+    border-left: 0; border-right: 0;
+    border-top: 1px solid #e5e7eb;
+    border-top-left-radius: 14px;
+    border-top-right-radius: 14px;
+    box-shadow: 0 -12px 30px rgba(0,0,0,.15);
+    background: #fff;
+    display: flex; flex-direction: column;
+    overflow: hidden;                  /* el scroll va en .content */
+    z-index: 3350;                     /* sobre el mapa y debajo del menú */
+    font-size: 13px;                   /* base compacta */
+  }
+
+  /* Header fijo */
+  #reportsPanel > header {
+    position: sticky; top: 0; z-index: 2;
+    background: #fff;
+    padding: 10px 12px !important;
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    border-bottom: 1px solid #e5e7eb;
+  }
+  #reportsPanel > header h3 {
+    margin: 0; font-size: 16px;
+  }
+  #reportsPanel .btn-sm {
+    min-height: 32px; padding: 4px 8px; font-size: 12px; line-height: 1;
+  }
+
+  /* Contenido scrolleable */
+  #reportsPanel .content {
+    padding: 12px 14px !important;
+    overflow-y: auto;
+  }
+
+  /* Controles compactos */
+  #reportsPanel select,
+  #reportsPanel input[type="datetime-local"] {
+    width: 100%;
+    min-height: 36px;
+    padding: 8px 10px;
+    font-size: 12px;
+  }
+
+  /* Grid de fechas: a una columna en móvil */
+  #reportsPanel .grid2 {
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+    margin-top: 8px !important;
+  }
+
+  /* Botones */
+  #reportsPanel .btn {
+    padding: 8px 10px; font-size: 12px; min-height: 32px;
+    width: 100%;
+  }
+  #btnGenerateReport { margin-top: 8px; }
+  #btnDownloadReport { width: 100% !important; margin-top: 10px !important; }
+
+  /* Resultado: más compacto y legible */
+  #reportsPanel .report-result {
+    padding: 10px;
+  }
+  #reportsPanel .report-result .kv {
+    padding: 6px 0;
+  }
+  #reportsPanel .report-result .kv .k,
+  #reportsPanel .report-result .kv .v {
+    font-size: 12px;
+  }
+  #reportsPanel #reportKm {
+    font-size: 1.2em !important;      /* bajamos un poco el tamaño */
+  }
+}
+
+/* Seguridad extra por si tenés reglas viejas que pisan posiciones */
+#reportsPanel { right: 0 !important; left: auto !important; }
