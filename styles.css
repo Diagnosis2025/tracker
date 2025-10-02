@@ -4,7 +4,7 @@ body, html { margin: 0; height: 100%; font-family: system-ui, Arial, sans-serif;
 .hidden { display: none !important; }
 
 .topbar {
-  position: fixed;              /* sticky tiene bugs en iOS */
+  position: fixed;             
   top: 0;
   left: 0;
   right: 0;
@@ -530,50 +530,59 @@ body.sidebar-collapsed #mapPane{
 
 /* Dropdown alineado arriba a la derecha del botón */
 .refs-dropdown {
-  position: fixed !important;         /* <- no depender de la toolbar */
-  top: var(--topbar-h, 60px);
-  right: 12px;
-  left: 12px;                         /* que pueda ocupar ancho si hace falta */
-  max-width: min(100vw - 24px, 420px);/* opcional: limitá ancho en desktop */
-  max-height: calc(100vh - var(--topbar-h, 60px) - 12px);
+  position: fixed !important;
+  top: 64px !important;
+  right: 12px !important;
+  left: auto !important;
+  width: min(92vw, 420px) !important;
+  max-height: calc(100vh - 70px) !important;
   overflow: auto;
-  z-index: 3000;
+  z-index: 4500 !important;
   border-radius: 8px;
+  background: #ffffff !important;
+  border: 1px solid #e5e7eb !important;
+  box-shadow: 0 12px 30px rgba(0,0,0,.12), 0 2px 10px rgba(0,0,0,.08) !important;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  padding: 8px 0;
+  pointer-events: auto !important;
+}
+.refs-dropdown:not(.hidden) {
+  display: block !important;
 }
 
 @media (min-width: 1025px) {
-  /* Dropdown alineado arriba a la derecha del botón SOLO en PC */
   .refs-dropdown {
-    position: absolute !important;     /* <- posición relativa al botón */
-    top: 100%;                        /* justo debajo del botón */
-    right: 0;                         /* alineado a la derecha del botón */
-    left: auto !important;            /* anula cualquier left anterior */
-    width: 420px;                     /* ancho fijo en PC */
-    max-width: none;                  /* quita limitación de ancho */
-    max-height: 70vh;                 /* altura máxima */
+    position: absolute !important;
+    top: 100% !important;
+    right: 0 !important;
+    left: auto !important;
+    width: 420px !important;
+    max-width: none !important;
+    max-height: 70vh !important;
     overflow: auto;
-    z-index: 3000;
+    z-index: 4500 !important;
     border-radius: 8px;
-    margin-top: 8px;                  /* separación del botón */
-    transform: none !important;       /* anula cualquier transform */
+    margin-top: 8px;
+    transform: none !important;
   }
 }
 
 /* contenido */
 .refs-header { font-weight: 600; padding: 10px 14px; border-bottom: 1px solid #f0f0f0; color: #374151; }
-.refs-item   { display: flex; align-items: center; gap: 10px; padding: 10px 14px; }
+.refs-item   { display: flex; align-items: center; gap: 10px; padding: 10px 14px; cursor: pointer; }
 .refs-item:hover { background: #f9fafb; }
 .refs-item img { width: 36px; height: 36px; flex: 0 0 28px; }
 .refs-text { display: flex; flex-direction: column; line-height: 1.2; }
 .refs-title { font-size: 16px; color: #111827; }
 .refs-path  { font-size: 14px; color: #6b7280; }
 
-/* Fondo sólido y sombra para Referencias y Menú */
 .refs-dropdown,
 .dropdown-content {
-  background: #ffffff;                 /* ← fondo blanco */
-  border: 1px solid #e5e7eb;           /* borde suave */
-  box-shadow: 0 12px 30px rgba(0,0,0,.12), 0 2px 10px rgba(0,0,0,.08);
+  background: #ffffff !important;
+  border: 1px solid #e5e7eb !important;
+  box-shadow: 0 12px 30px rgba(0,0,0,.12), 0 2px 10px rgba(0,0,0,.08) !important;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* Ajustes de padding internos (opcional) */
