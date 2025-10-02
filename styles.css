@@ -720,7 +720,7 @@ body.sidebar-collapsed #mapPane{
 @media (max-width: 480px) {
   /* Panel contenedor */
   .details-panel {
-    font-size: 12px;
+    font-size: 1px;
   }
 
   /* Encabezado (título + botones) */
@@ -729,10 +729,10 @@ body.sidebar-collapsed #mapPane{
     gap: 8px;
   }
   .details-header .muted {
-    font-size: 11px;
+    font-size: 15px;
   }
   .details-header .big {
-    font-size: 16px;   /* antes 18+ */
+    font-size: 11px;   /* antes 18+ */
     line-height: 1.2;
   }
   .details-header .btn-sm {
@@ -746,8 +746,8 @@ body.sidebar-collapsed #mapPane{
     padding: 12px !important;
   }
   .kv {
-    padding: 6px 0;
-    gap: 6px;
+    padding: 4px 0;
+    gap: 4px;
   }
   .kv .k {
     font-size: 12px;
@@ -795,24 +795,7 @@ body.sidebar-collapsed #mapPane{
     font-size: 12px;
   }
 
-  /* Inputs/controles dentro del panel */
-  .details-panel input[type="datetime-local"] {
-    min-height: 36px;
-    padding: 8px 10px;
-    font-size: 12px;         /* suficiente para evitar zoom iOS si ya tenés regla global */
-  }
 
-  /* Botones de acciones (Buscar/Descargar) dentro del panel */
-  .details-panel .btn {
-    padding: 8px 10px;
-    font-size: 12px;
-    min-height: 32px;
-  }
-  .details-panel .btn.btn-sm {
-    padding: 6px 8px;
-    font-size: 12px;
-    min-height: 30px;
-  }
 
   /* Popup de puntos (cuando pasás por encima) también más chico */
   .route-popup {
