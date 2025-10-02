@@ -4,11 +4,19 @@ body, html { margin: 0; height: 100%; font-family: system-ui, Arial, sans-serif;
 .hidden { display: none !important; }
 
 .topbar {
-  position: sticky;
+  position: fixed;              /* sticky tiene bugs en iOS */
+  top: 0;
+  left: 0;
+  right: 0;
   overflow: visible !important;
   height: 58px; display: flex; align-items: center; justify-content: space-between;
   padding: 0 12px; background:#111827; color:#fff; gap:10px;
+  z-index: 4000;                /* asegurar que esté arriba */
+  -webkit-transform: translateZ(0); /* force GPU en Safari */
+  transform: translateZ(0);
 }
+
+
 #btnMenu {
   position: relative;          /* ancla seguro en desktop */
   z-index: 4100;               /* por encima de otros botones */
@@ -361,11 +369,8 @@ body.sidebar-collapsed #mapPane{
 
 /* Asegurar que el botón Menú tenga el mismo estilo que otros botones */
 #btnMenu {
-  padding: 6px 10px;
-  border: 1px solid #e5e7eb;
-  background: #fff;
-  border-radius: 8px;
-  cursor: pointer;
+  position: relative;          /* ancla seguro en desktop */
+  z-index: 4100;               /* por encima de otros botones */
 }
 
 #btnMenu:hover {
@@ -751,9 +756,7 @@ body.sidebar-collapsed #mapPane{
   gap: 6px;
   white-space: nowrap;         /* <- por si algún botón es inline */
 }
-.topbar {
-  z-index: 2000;
-}
+
 .topbar .btn,
 .topbar .dropdown > .btn,
 .topbar .refs-btn {
