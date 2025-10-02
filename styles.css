@@ -1017,6 +1017,75 @@ body.sidebar-collapsed #mapPane{
 /* =======================================================
    MOBILE (<=480px) — Panels como bottom-sheet + menú centrado
    ======================================================= */
+
+
+   /* ===== Desktop / Tablets (>=481px): menú anclado al botón ===== */
+@media (min-width: 481px) {
+  #menuContent {
+    position: absolute !important;     /* relativo al .dropdown */
+    top: 100% !important;              /* debajo del botón */
+    left: 0 !important;                /* alineado con el botón */
+    right: auto !important;
+    transform: none !important;
+    min-width: 220px;
+    max-height: min(70vh, 560px);
+    overflow: auto;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    box-shadow: 0 12px 30px rgba(0,0,0,.15);
+    z-index: 5000 !important;          /* por encima de drawers */
+    pointer-events: auto;
+    -webkit-transform: translateZ(0);  /* hint para Safari */
+    will-change: transform;
+  }
+}
+
+/* ===== Móvil (<=480px): menú centrado bajo la app bar ===== */
+@media (max-width: 480px) {
+  #menuContent {
+    position: fixed !important;        /* evita recorte por ancestros */
+    top: calc(var(--topbar-h, 60px) + 6px) !important;
+    left: 50% !important;
+    right: auto !important;
+    transform: translateX(-50%) !important;
+    width: min(96vw, 240px);
+    max-height: calc(100vh - var(--topbar-h, 60px) - 16px);
+    overflow: auto;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    box-shadow: 0 12px 30px rgba(0,0,0,.15);
+    z-index: 4600 !important;          /* sobre reports/search/etc. */
+    pointer-events: auto;
+    -webkit-overflow-scrolling: touch; /* scroll suave iOS */
+  }
+
+  /* Evitar que algo lo tape en iOS con “safe areas” */
+  @supports (padding: max(0px)) {
+    #menuContent { padding-bottom: max(0px, env(safe-area-inset-bottom)); }
+  }
+}
+
+/* Estilo de items (por si alguna regla anterior interfiere) */
+#menuContent a {
+  display: block;
+  padding: 12px 16px;
+  text-decoration: none;
+  color: #111827;
+  cursor: pointer;
+}
+#menuContent a:hover { background: #f1f5f9; }
+
+/* ===================================================================
+   Prioridad: si tenés reglas genéricas de .dropdown-content,
+   este ID las anula. Si aún así algo pisa, estos “guardarraíles”:
+   =================================================================== */
+#menuContent {
+  background: #ffffff !important;
+  border: 1px solid #e5e7eb !important;
+  box-shadow: 0 12px 30px rgba(0,0,0,.12), 0 2px 10px rgba(0,0,0,.08) !important;
+}
 @media (max-width: 480px) {
   /* ---------- TOPBAR ---------- */
   .topbar { z-index: 4000; }             /* por encima del mapa */
@@ -1028,22 +1097,7 @@ body.sidebar-collapsed #mapPane{
   .topbar .btn { width: auto !important; }
 
   /* ---------- MENÚ (centrado y visible) ---------- */
-  /* Forzamos sólo el menú principal usando su ID */
-  #menuContent {
-    position: fixed !important;
-    top: calc(var(--topbar-h, 60px) + 6px);
-    left: 50%;
-    right: auto;
-    transform: translateX(-50%);
-    width: min(96vw, 220px);
-    max-height: calc(100vh - var(--topbar-h, 60px) - 16px);
-    overflow: auto;
-    background: #fff;
-    border: 1px solid #e5e7eb;
-    border-radius: 10px;
-    box-shadow: 0 12px 30px rgba(0,0,0,.15);
-    z-index: 3600;                       /* por encima de paneles */
-  }
+
   /* Asegurar que el ocultamiento funcione */
   #menuContent.hidden { display: none !important; }
 
