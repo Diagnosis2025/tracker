@@ -4,7 +4,7 @@ body, html { margin: 0; height: 100%; font-family: system-ui, Arial, sans-serif;
 .hidden { display: none !important; }
 
 .topbar {
-  position: fixed;             
+  position: fixed;              
   top: 0;
   left: 0;
   right: 0;
@@ -16,12 +16,10 @@ body, html { margin: 0; height: 100%; font-family: system-ui, Arial, sans-serif;
   transform: translateZ(0);
 }
 
-
 #btnMenu {
   position: relative;          /* ancla seguro en desktop */
   z-index: 4100;               /* por encima de otros botones */
 }
-
 
 .topbar .brand { font-weight:700; }
 .topbar .toolbar { display:flex; gap:8px; align-items:center; flex-wrap: wrap; }
@@ -530,59 +528,50 @@ body.sidebar-collapsed #mapPane{
 
 /* Dropdown alineado arriba a la derecha del botón */
 .refs-dropdown {
-  position: fixed !important;
-  top: 64px !important;
-  right: 12px !important;
-  left: auto !important;
-  width: min(92vw, 420px) !important;
-  max-height: calc(100vh - 70px) !important;
+  position: fixed !important;         /* <- no depender de la toolbar */
+  top: var(--topbar-h, 60px);
+  right: 12px;
+  left: 12px;                         /* que pueda ocupar ancho si hace falta */
+  max-width: min(100vw - 24px, 420px);/* opcional: limitá ancho en desktop */
+  max-height: calc(100vh - var(--topbar-h, 60px) - 12px);
   overflow: auto;
-  z-index: 4500 !important;
+  z-index: 3000;
   border-radius: 8px;
-  background: #ffffff !important;
-  border: 1px solid #e5e7eb !important;
-  box-shadow: 0 12px 30px rgba(0,0,0,.12), 0 2px 10px rgba(0,0,0,.08) !important;
-  -webkit-transform: translateZ(0);
-  transform: translateZ(0);
-  padding: 8px 0;
-  pointer-events: auto !important;
-}
-.refs-dropdown:not(.hidden) {
-  display: block !important;
 }
 
 @media (min-width: 1025px) {
+  /* Dropdown alineado arriba a la derecha del botón SOLO en PC */
   .refs-dropdown {
-    position: absolute !important;
-    top: 100% !important;
-    right: 0 !important;
-    left: auto !important;
-    width: 420px !important;
-    max-width: none !important;
-    max-height: 70vh !important;
+    position: absolute !important;     /* <- posición relativa al botón */
+    top: 100%;                        /* justo debajo del botón */
+    right: 0;                         /* alineado a la derecha del botón */
+    left: auto !important;            /* anula cualquier left anterior */
+    width: 420px;                     /* ancho fijo en PC */
+    max-width: none;                  /* quita limitación de ancho */
+    max-height: 70vh;                 /* altura máxima */
     overflow: auto;
-    z-index: 4500 !important;
+    z-index: 3000;
     border-radius: 8px;
-    margin-top: 8px;
-    transform: none !important;
+    margin-top: 8px;                  /* separación del botón */
+    transform: none !important;       /* anula cualquier transform */
   }
 }
 
 /* contenido */
 .refs-header { font-weight: 600; padding: 10px 14px; border-bottom: 1px solid #f0f0f0; color: #374151; }
-.refs-item   { display: flex; align-items: center; gap: 10px; padding: 10px 14px; cursor: pointer; }
+.refs-item   { display: flex; align-items: center; gap: 10px; padding: 10px 14px; }
 .refs-item:hover { background: #f9fafb; }
 .refs-item img { width: 36px; height: 36px; flex: 0 0 28px; }
 .refs-text { display: flex; flex-direction: column; line-height: 1.2; }
 .refs-title { font-size: 16px; color: #111827; }
 .refs-path  { font-size: 14px; color: #6b7280; }
 
+/* Fondo sólido y sombra para Referencias y Menú */
 .refs-dropdown,
 .dropdown-content {
-  background: #ffffff !important;
-  border: 1px solid #e5e7eb !important;
-  box-shadow: 0 12px 30px rgba(0,0,0,.12), 0 2px 10px rgba(0,0,0,.08) !important;
-  -webkit-overflow-scrolling: touch;
+  background: #ffffff;                 /* ← fondo blanco */
+  border: 1px solid #e5e7eb;           /* borde suave */
+  box-shadow: 0 12px 30px rgba(0,0,0,.12), 0 2px 10px rgba(0,0,0,.08);
 }
 
 /* Ajustes de padding internos (opcional) */
@@ -711,20 +700,64 @@ body.sidebar-collapsed #mapPane{
 /* Evitar que la “manija” (si la tenés con ::before) tape los clicks */
 .details-panel::before { pointer-events: none; }
 
-/* ================================================================================================================================================================================
-   RESPONSIVE / MOBILE FIXES
-   ================================================================================================================================================================================ */
-/* ========== FIXES APP BAR & DETAILS PANEL ========== */
+/* ================================================================================================================
+   RESPONSIVE / MOBILE FIXES - iOS & Android compatible
+   ================================================================================================================ */
+
 @media (max-width: 1024px) {
-  .refs-dropdown {
-    right: 0;
-    left: 0;
-    max-width: none;
-    border-radius: 0;
+  /* Referencias: ancladas a la derecha en tablets */
+  .refs-dropdown,
+  #refsContent {
+    position: fixed !important;
+    top: 64px !important;
+    right: 12px !important;
+    left: auto !important;
+    width: min(92vw, 420px) !important;
+    max-height: calc(100vh - 70px) !important;
+    border-radius: 8px !important;
+    z-index: 4500 !important;
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+    background: #ffffff !important;
+    border: 1px solid #e5e7eb !important;
+    box-shadow: 0 4px 20px rgba(0,0,0,.15) !important;
+    pointer-events: auto !important;
+    display: none;
+  }
+  
+  .refs-dropdown:not(.hidden),
+  #refsContent:not(.hidden) {
+    display: block !important;
+  }
+  
+  /* Menú: centrado en tablets */
+  .dropdown-content,
+  #menuContent {
+    position: fixed !important;
+    top: 64px !important;
+    left: 50% !important;
+    right: auto !important;
+    transform: translateX(-50%) !important;
+    width: min(96vw, 240px);
+    max-height: calc(100vh - 70px);
+    border-radius: 10px;
+    z-index: 4600 !important;
   }
 }
-/* 1) En móviles: que los botones de la TOPBAR NO ocupen 100% de ancho */
+
 @media (max-width: 480px) {
+  /* TOPBAR */
+  .topbar { z-index: 4000; }
+  
+  .topbar .toolbar {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    gap: 6px;
+    white-space: nowrap;
+  }
+  
   .topbar .btn,
   .topbar .dropdown > .btn,
   .topbar .refs-btn {
@@ -732,7 +765,7 @@ body.sidebar-collapsed #mapPane{
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    padding: 8px 10px;   /* coherente con tus reglas */
+    padding: 8px 10px;
     font-size: 13px;
     min-height: 36px;
     line-height: 1.1;
@@ -740,237 +773,122 @@ body.sidebar-collapsed #mapPane{
     flex: 0 0 auto;
   }
 
-.topbar .dropdown-content {
+  /* MENÚ: centrado bajo la topbar */
+  #menuContent {
     position: fixed !important;
-    top: calc(var(--topbar-h, 60px) + 6px);
-    left: 50%;
-    right: auto;
-    transform: translateX(-50%);
-    width: min(96vw, 160px);
-    max-height: calc(100vh - var(--topbar-h, 60px) - 16px);
+    top: 64px !important;
+    left: 50% !important;
+    right: auto !important;
+    transform: translateX(-50%) !important;
+    width: min(96vw, 240px);
+    max-height: calc(100vh - 70px);
     overflow: auto;
-    background: #fff;
-    border: 1px solid #e5e7eb;
+    background: #fff !important;
+    border: 1px solid #e5e7eb !important;
     border-radius: 10px;
-    box-shadow: 0 12px 30px rgba(0,0,0,.15);
-    z-index: 3500;
+    box-shadow: 0 12px 30px rgba(0,0,0,.15) !important;
+    z-index: 4600 !important;
+    pointer-events: auto;
+    -webkit-overflow-scrolling: touch;
+    -webkit-transform: translateZ(0);
+  }
+  #menuContent.hidden { display: none !important; }
+
+  /* REFERENCIAS: ancladas a la derecha */
+  .refs-dropdown,
+  #refsContent {
+    position: fixed !important;
+    top: 64px !important;
+    right: 12px !important;
+    left: auto !important;
+    width: min(92vw, 380px) !important;
+    max-height: calc(100vh - 70px) !important;
+    overflow: auto;
+    background: #fff !important;
+    border: 1px solid #e5e7eb !important;
+    border-radius: 8px;
+    box-shadow: 0 12px 30px rgba(0,0,0,.12), 0 2px 10px rgba(0,0,0,.08) !important;
+    z-index: 4500 !important;
+    -webkit-overflow-scrolling: touch;
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+    pointer-events: auto !important;
+    display: none;
+  }
+  .refs-dropdown:not(.hidden),
+  #refsContent:not(.hidden) {
+    display: block !important;
   }
 
-  /* Evitar que el contenedor “estire” los botones */
-.topbar .toolbar {
-  display: flex;
-  flex-wrap: nowrap;           /* <- evita que bajen a otra línea */
-  overflow-x: auto;            /* <- permite desplazar horizontal */
-  -webkit-overflow-scrolling: touch;
-  gap: 6px;
-  white-space: nowrap;         /* <- por si algún botón es inline */
+  
+
+  /* Grids a una columna */
+  #editPanel .grid2,
+  #reportsPanel .grid2 {
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+  }
+
+  /* Safe areas para notch */
+  @supports (padding: max(0px)) {
+    #menuContent,
+    #editPanel {
+      padding-bottom: max(0px, env(safe-area-inset-bottom));
+    }
+  }
 }
 
-.topbar .btn,
-.topbar .dropdown > .btn,
-.topbar .refs-btn {
-  flex: 0 0 auto;              /* <- que no se estiren ni encojan */
+/* Seguridad: forzar posiciones */
+#menuContent {
+  background: #ffffff !important;
+  border: 1px solid #e5e7eb !important;
 }
 
-/* --- DETAILS PANEL como bottom-sheet, sin cortes --- */
+.refs-dropdown,
+#refsContent {
+  right: 12px !important;
+  left: auto !important;
+}
+
+
+/* ===========================================================
+   MOBILE (<=480px) — Headers arriba, orden correcto y close chico
+   =========================================================== */
+@media (max-width: 480px) {
+
+  /* --- Paneles como bottom-sheet y en columna normal --- */
+  #searchPanel,
+  #fleetPanel,
+  #editPanel,
+  #reportsPanel,
   .details-panel {
     position: fixed !important;
-    top: auto;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    width: auto !important;
-    max-height: 90vh;              /* no tapa toda la pantalla */
-    height: auto;
-    border-left: 0;
-    border-right: 0;
-    border-top: 1px solid #e5e7eb;
-    border-top-left-radius: 14px;
-    border-top-right-radius: 14px;
-    box-shadow: 0 -12px 30px rgba(0,0,0,.15);
-    background: #fff;
-    display: flex;                 /* para manejar scroll interno */
-    flex-direction: column;
-    overflow: hidden;              /* el scroll va en body/actions */
-    z-index: 3200;
-    font-size: 13px;               /* base compacta (legible) */
-  }
-
-  /* Header fijo arriba */
-  .details-header {
-    position: sticky;
-    top: 0;
-    background: #fff;
-    z-index: 2;
-    padding: 10px 12px !important;
-    gap: 8px;
-  }
-  .details-header .muted { font-size: 11px; }
-  .details-header .big   { font-size: 16px; line-height: 1.2; }
-  .details-header .btn-sm {
-    min-height: 32px; padding: 4px 8px; font-size: 10px;
-  }
-
-  /* Cuerpo + Acciones con scroll interno */
-  .details-body,
-  .details-actions {
-    padding: 12px 14px !important;
-    overflow-y: auto;
-  }
-  /* Si querés limitar la altura del bloque scrolleable:
-     .details-body { max-height: 48vh; }
-     .details-actions { max-height: 28vh; }
-  */
-
-  /* Densidad / tipografías compactas en el contenido */
-  .kv { padding: 6px 0; gap: 6px; }
-  .kv .k, .kv .v { font-size: 12px; }
-  .section-title, .group-title { font-size: 12px; margin: 10px 0 6px; }
-  .chips { gap: 6px; flex-wrap: wrap; }
-  .chip { padding: 6px 10px; font-size: 12px; min-height: 30px; line-height: 1.1; }
-  .grid2 { grid-template-columns: 1fr 1fr; gap: 8px !important; }
-  .details-panel input[type="datetime-local"] {
-    min-height: 36px; padding: 8px 10px; font-size: 12px;
-  }
-  .details-panel .btn {
-    padding: 8px 10px; font-size: 12px; min-height: 32px; width: 100%;
-  }
-
-  /* Evitar que el título se coma el botón cerrar */
-  .details-header > div:first-child { min-width: 0; }
-  .details-header .big {
-    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  }
-
-  /* --- REFERENCIAS ancladas a la derecha --- */
-  .refs-dropdown {
-    position: fixed !important;
-    top: calc(var(--topbar-h, 60px) + 6px);
-    right: 12px;
-    left: auto;
-    width: min(92vw, 420px);
-    max-height: calc(100vh - var(--topbar-h, 60px) - 16px);
-    overflow: auto;
-    background: #ffffff;
-    border: 1px solid #e5e7eb;
-    border-radius: 8px;
-    box-shadow: 0 12px 30px rgba(0,0,0,.12), 0 2px 10px rgba(0,0,0,.08);
-    z-index: 3400;
-  }
-
-
-}
-
-/* 2) En tablets/móviles: asegurar layout correcto del header de paneles
-      y que la X esté visible y clickeable */
-.right-drawer header,
-.details-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-/* Botón de cerrar siempre a la derecha, tamaño compacto */
-.right-drawer header .btn-sm,
-.details-header .btn-sm {
-  flex: 0 0 auto;
-  width: auto !important;
-  min-width: 36px;
-  min-height: 36px;
-  padding: 6px 10px;
-  font-size: 14px;
-  line-height: 1;
-}
-
-/* 3) La “manija” del bottom-sheet no debe bloquear clicks */
-.right-drawer::before,
-.details-panel::before {
-  pointer-events: none;     /* ← importante */
-  z-index: 1;
-}
-
-/* Asegurar que el header quede por encima de la manija */
-.right-drawer header,
-.details-header {
-  position: sticky;
-  top: 0;
-  z-index: 2;               /* por encima del ::before */
-  background: #fff;
-}
-
-/* 4) Ajustes de tipografía para que la cabecera no “crezca” de más */
-.details-header .big {
-  font-size: 18px;
-  line-height: 1.2;
-  margin: 0;
-}
-
-/* 5) En móviles: no “estirar” botones fuera de paneles de contenido */
-@media (max-width: 480px) {
-  /* Tu regla original fuerza width:100% para .btn.
-     La limitamos solo a botones dentro de paneles / formularios,
-     NO a la topbar */
-  .right-drawer .btn,
-  .details-panel .btn {
-    width: 100%;
-  }
-  /* Y explícitamente neutralizamos en la topbar */
-  .topbar .btn {
-    width: auto !important;
-  }
-}
-
-/* 6) Por si algún user-agent aplica estilos raros al botón de cerrar (×) */
-.btn.btn-sm {
-  cursor: pointer;
-}
-
-/* 7) Evitar que el título se coma el espacio del botón cerrar en pantallas chicas */
-.details-header > div:first-child {
-  min-width: 0;
-}
-.details-header .big {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-
-/* =======================================================
-   CELULAR (<=480px) — Editar atributos como bottom-sheet
-   ======================================================= */
-@media (max-width: 480px) {
-  /* Contenedor del panel */
-  #editPanel {
-    position: fixed !important;
-    top: auto;
-    bottom: 0;
-    left: 0;
-    right: 0;
+    top: 100; bottom: 0; left: 0; right: 0;
     width: 100vw !important;
-    max-height: 80vh;                 /* no tapa toda la pantalla */
-    height: auto;
-    border-left: 0;
-    border-right: 0;
+    max-height: 80vh;
+    border-left: 0; border-right: 0;
     border-top: 1px solid #e5e7eb;
     border-top-left-radius: 14px;
     border-top-right-radius: 14px;
     box-shadow: 0 -12px 30px rgba(0,0,0,.15);
     background: #fff;
-    display: flex;                     /* scroll interno */
-    flex-direction: column;
-    overflow: hidden;                  /* scroll va en .content */
-    z-index: 3300;                     /* por encima del mapa */
-    font-size: 13px;                   /* tipografía compacta */
+    display: flex;
+    flex-direction: column !important; /* ← orden natural */
+    overflow: hidden;                  /* scroll interno */
+    z-index: 3300;
+    font-size: 12px;
   }
 
-  /* Header fijo, siempre visible */
-  #editPanel > header {
-    position: sticky;
-    top: 0;
-    background: #fff;
+  /* --- Header SIEMPRE ARRIBA (sticky) y en primer lugar --- */
+  #searchPanel > header,
+  #fleetPanel  > header,
+  #editPanel   > header,
+  #reportsPanel> header,
+  .details-header {
+    order: 0 !important;          /* ← primero en el flujo */
+    position: sticky; top: 0;
     z-index: 2;
+    background: #fff;
     padding: 10px 12px !important;
     display: flex;
     align-items: center;
@@ -978,324 +896,88 @@ body.sidebar-collapsed #mapPane{
     gap: 8px;
     border-bottom: 1px solid #e5e7eb;
   }
-  #editPanel > header h3 {
-    font-size: 16px;
-    margin: 0;
+
+  /* --- Contenido bajo el header, con scroll --- */
+  #searchPanel .content,
+  #fleetPanel  .content,
+  #editPanel   .content,
+  #reportsPanel .content,
+  .details-body,
+  .details-actions {
+    order: 1 !important;          /* ← después del header */
+    padding: 12px 14px !important;
+    overflow-y: auto;
   }
-  #editPanel > header .btn-sm,
-  #btnCloseEdit.btn.btn-sm {
-    min-height: 32px;
+
+  /* --- Botón CERRAR: tamaño compacto y sin estirarse --- */
+  #searchPanel > header .btn,
+  #fleetPanel  > header .btn,
+  #editPanel   > header .btn,
+  #reportsPanel> header .btn,
+  .details-header .btn {
+    width: auto !important;        /* no ocupar 100% */
+  }
+  #searchPanel > header .btn-sm,
+  #fleetPanel  > header .btn-sm,
+  #editPanel   > header .btn-sm,
+  #reportsPanel> header .btn-sm,
+  .details-header .btn-sm {
+    min-height: 30px;
     padding: 4px 8px;
     font-size: 12px;
     line-height: 1;
+    flex: 0 0 auto;
   }
 
-  /* Cuerpo scrolleable */
-  #editPanel .content {
-    padding: 12px 14px !important;
-    overflow-y: auto;
+  /* --- Título no invade el botón de cerrar --- */
+  #searchPanel > header h3,
+  #fleetPanel  > header h3,
+  #editPanel   > header h3,
+  #reportsPanel> header h3,
+  .details-header .big {
+    margin: 0;
+    font-size: 16px;
+    line-height: 1.2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
-  /* Form más denso y de una sola columna */
-  #editPanel .grid2 {
-    grid-template-columns: 1fr;
-    gap: 8px !important;
-  }
-  #editPanel label { font-size: 12px; }
-  #editPanel input,
-  #editPanel select {
+  /* --- Inputs y botones dentro del cuerpo: compactos --- */
+  #searchPanel input,
+  #editPanel   input,
+  #editPanel   select,
+  #reportsPanel select,
+  #reportsPanel input[type="datetime-local"],
+  .details-panel input[type="datetime-local"] {
     min-height: 36px;
     padding: 8px 10px;
     font-size: 12px;
     width: 100%;
   }
-
-  /* Botones de acciones */
-  #editPanel .btn {
+  #searchPanel .btn,
+  #editPanel   .btn,
+  #reportsPanel .btn,
+  .details-panel .btn {
     padding: 8px 10px;
     font-size: 12px;
     min-height: 32px;
     width: 100%;
   }
 
-  /* Safe areas (notch) opcional */
-  @supports (padding: max(0px)) {
-    #editPanel {
-      padding-bottom: max(0px, env(safe-area-inset-bottom));
-    }
-  }
-}
-
-/* =======================================================
-   MOBILE (<=480px) — Panels como bottom-sheet + menú centrado
-   ======================================================= */
-
-
-   /* ===== Desktop / Tablets (>=481px): menú anclado al botón ===== */
-@media (min-width: 481px) {
-  #menuContent {
-    position: absolute !important;     /* relativo al .dropdown */
-    top: 100% !important;              /* debajo del botón */
-    left: 0 !important;                /* alineado con el botón */
-    right: auto !important;
-    transform: none !important;
-    min-width: 220px;
-    max-height: min(70vh, 560px);
-    overflow: auto;
-    background: #fff;
-    border: 1px solid #e5e7eb;
-    border-radius: 10px;
-    box-shadow: 0 12px 30px rgba(0,0,0,.15);
-    z-index: 5000 !important;          /* por encima de drawers */
-    pointer-events: auto;
-    -webkit-transform: translateZ(0);  /* hint para Safari */
-    will-change: transform;
-  }
-}
-
-/* ===== Móvil (<=480px): menú centrado bajo la app bar ===== */
-@media (max-width: 480px) {
-  #menuContent {
-    position: fixed !important;        /* evita recorte por ancestros */
-    top: calc(var(--topbar-h, 60px) + 6px) !important;
-    left: 50% !important;
-    right: auto !important;
-    transform: translateX(-50%) !important;
-    width: min(96vw, 240px);
-    max-height: calc(100vh - var(--topbar-h, 60px) - 16px);
-    overflow: auto;
-    background: #fff;
-    border: 1px solid #e5e7eb;
-    border-radius: 10px;
-    box-shadow: 0 12px 30px rgba(0,0,0,.15);
-    z-index: 4600 !important;          /* sobre reports/search/etc. */
-    pointer-events: auto;
-    -webkit-overflow-scrolling: touch; /* scroll suave iOS */
-  }
-
-  /* Evitar que algo lo tape en iOS con “safe areas” */
-  @supports (padding: max(0px)) {
-    #menuContent { padding-bottom: max(0px, env(safe-area-inset-bottom)); }
-  }
-}
-
-/* Estilo de items (por si alguna regla anterior interfiere) */
-#menuContent a {
-  display: block;
-  padding: 12px 16px;
-  text-decoration: none;
-  color: #111827;
-  cursor: pointer;
-}
-#menuContent a:hover { background: #f1f5f9; }
-
-/* ===================================================================
-   Prioridad: si tenés reglas genéricas de .dropdown-content,
-   este ID las anula. Si aún así algo pisa, estos “guardarraíles”:
-   =================================================================== */
-#menuContent {
-  background: #ffffff !important;
-  border: 1px solid #e5e7eb !important;
-  box-shadow: 0 12px 30px rgba(0,0,0,.12), 0 2px 10px rgba(0,0,0,.08) !important;
-}
-@media (max-width: 480px) {
-  /* ---------- TOPBAR ---------- */
-  .topbar { z-index: 4000; }             /* por encima del mapa */
-  .topbar .toolbar {
-    display: flex; flex-wrap: nowrap;
-    overflow-x: auto; gap: 6px; white-space: nowrap;
-    -webkit-overflow-scrolling: touch;
-  }
-  .topbar .btn { width: auto !important; }
-
-  /* ---------- MENÚ (centrado y visible) ---------- */
-
-  /* Asegurar que el ocultamiento funcione */
-  #menuContent.hidden { display: none !important; }
-
-  /* ---------- REFERENCIAS (a la derecha) ---------- */
-  #refsContent {
-    position: fixed !important;
-    top: calc(var(--topbar-h, 60px) + 6px);
-    right: 12px;
-    left: auto;
-    width: min(92vw, 420px);
-    max-height: calc(100vh - var(--topbar-h, 60px) - 16px);
-    overflow: auto;
-    background: #fff;
-    border: 1px solid #e5e7eb;
-    border-radius: 8px;
-    box-shadow: 0 12px 30px rgba(0,0,0,.12), 0 2px 10px rgba(0,0,0,.08);
-    z-index: 3400;
-  }
-  #refsContent.hidden { display: none !important; }
-
-  /* ---------- RIGHT DRAWERS como bottom-sheet ---------- */
-  /* Aplicamos a Buscar, Mi flota y Editar (y dejá tu bloque de details si ya lo tenés) */
-  #searchPanel,
-  #fleetPanel,
-  #editPanel {
-    position: fixed !important;
-    top: auto; bottom: 0; left: 0; right: 0;
-    width: 100vw !important;
-    max-height: 80vh;
-    height: auto;
-    border-left: 0; border-right: 0;
-    border-top: 1px solid #e5e7eb;
-    border-top-left-radius: 14px;
-    border-top-right-radius: 14px;
-    box-shadow: 0 -12px 30px rgba(0,0,0,.15);
-    background: #fff;
-    display: flex; flex-direction: column;
-    overflow: hidden;                    /* scroll va dentro */
-    z-index: 3300;
-    font-size: 13px;                     /* compacto */
-  }
-
-  /* Header fijo en la parte superior del panel */
-  #searchPanel > header,
-  #fleetPanel  > header,
-  #editPanel   > header {
-    position: sticky; top: 0; z-index: 2;
-    background: #fff;
-    padding: 10px 12px !important;
-    display: flex; align-items: center; justify-content: space-between; gap: 8px;
-    border-bottom: 1px solid #e5e7eb;
-  }
-  #searchPanel > header h3,
-  #fleetPanel  > header h3,
-  #editPanel   > header h3 {
-    margin: 0; font-size: 16px;
-  }
-  #searchPanel .btn-sm,
-  #fleetPanel  .btn-sm,
-  #editPanel   .btn-sm {
-    min-height: 32px; padding: 4px 8px; font-size: 12px; line-height: 1;
-  }
-
-  /* Cuerpo scrolleable */
-  #searchPanel .content,
-  #fleetPanel  .content,
-  #editPanel   .content {
-    padding: 12px 14px !important;
-    overflow-y: auto;
-  }
-
-  /* Densidad tipográfica y controles */
-  #searchPanel input,
-  #editPanel   input,
-  #editPanel   select {
-    min-height: 36px; padding: 8px 10px; font-size: 12px; width: 100%;
-  }
-  #searchPanel .btn,
-  #editPanel   .btn {
-    padding: 8px 10px; font-size: 12px; min-height: 32px; width: 100%;
-  }
-
-  /* Listado de flota más compacto */
-  #fleetPanel #fleetList { margin: 0; padding: 0; list-style: none; }
-  #fleetPanel #fleetList li {
-    padding: 10px 8px; border-bottom: 1px solid #f1f5f9; font-size: 13px;
-    display: flex; align-items: center; gap: 8px; justify-content: space-between;
-  }
-  #fleetPanel #fleetList li button.btn {
-    padding: 6px 10px; font-size: 12px; min-height: 32px; width: auto;
-  }
-
-  /* Grillas del editor en 1 columna (por si faltaba) */
-  #editPanel .grid2 { grid-template-columns: 1fr; gap: 8px !important; }
-}
-
-/* ====== Seguridad extra (fuera del @media) ====== */
-/* Evitar que reglas genéricas vuelvan a mover el menú */
-#menuContent { right: auto !important; left: 50% !important; transform: translateX(-50%) !important; }
-/* Asegurar referencias a la derecha siempre */
-#refsContent { right: 12px !important; left: auto !important; }
-/* ================================
-   MOBILE (<=480px) — REPORTS PANEL
-   ================================ */
-@media (max-width: 480px) {
-  /* Panel como bottom-sheet */
-  #reportsPanel {
-    position: fixed !important;
-    top: auto; bottom: 0; left: 0; right: 0;
-    width: 100vw !important;
-    max-height: 80vh;                 /* no tapa toda la pantalla */
-    height: auto;
-    border-left: 0; border-right: 0;
-    border-top: 1px solid #e5e7eb;
-    border-top-left-radius: 14px;
-    border-top-right-radius: 14px;
-    box-shadow: 0 -12px 30px rgba(0,0,0,.15);
-    background: #fff;
-    display: flex; flex-direction: column;
-    overflow: hidden;                  /* el scroll va en .content */
-    z-index: 3350;                     /* sobre el mapa y debajo del menú */
-    font-size: 13px;                   /* base compacta */
-  }
-
-  /* Header fijo */
-  #reportsPanel > header {
-    position: sticky; top: 0; z-index: 2;
-    background: #fff;
-    padding: 10px 12px !important;
-    display: flex; align-items: center; justify-content: space-between; gap: 8px;
-    border-bottom: 1px solid #e5e7eb;
-  }
-  #reportsPanel > header h3 {
-    margin: 0; font-size: 16px;
-  }
-  #reportsPanel .btn-sm {
-    min-height: 32px; padding: 4px 8px; font-size: 12px; line-height: 1;
-  }
-
-  /* Contenido scrolleable */
-  #reportsPanel .content {
-    padding: 12px 14px !important;
-    overflow-y: auto;
-  }
-
-  /* Controles compactos */
-  #reportsPanel select,
-  #reportsPanel input[type="datetime-local"] {
-    width: 100%;
-    min-height: 36px;
-    padding: 8px 10px;
-    font-size: 12px;
-  }
-
-  /* Grid de fechas: a una columna en móvil */
+  /* --- Grids a una columna en móvil --- */
+  #editPanel .grid2,
   #reportsPanel .grid2 {
     grid-template-columns: 1fr !important;
     gap: 8px !important;
-    margin-top: 8px !important;
-  }
-
-  /* Botones */
-  #reportsPanel .btn {
-    padding: 8px 10px; font-size: 12px; min-height: 32px;
-    width: 100%;
-  }
-  #btnGenerateReport { margin-top: 8px; }
-  #btnDownloadReport { width: 100% !important; margin-top: 10px !important; }
-
-  /* Resultado: más compacto y legible */
-  #reportsPanel .report-result {
-    padding: 10px;
-  }
-  #reportsPanel .report-result .kv {
-    padding: 6px 0;
-  }
-  #reportsPanel .report-result .kv .k,
-  #reportsPanel .report-result .kv .v {
-    font-size: 12px;
-  }
-  #reportsPanel #reportKm {
-    font-size: 1.2em !important;      /* bajamos un poco el tamaño */
   }
 }
 
-/* Seguridad extra por si tenés reglas viejas que pisan posiciones */
-#reportsPanel { right: 0 !important; left: auto !important; }
-
-
+/* Seguridad extra (fuera del media): evitar ancho 100% en headers */
+#searchPanel > header .btn,
+#fleetPanel  > header .btn,
+#editPanel   > header .btn,
+#reportsPanel> header .btn,
+.details-header .btn {
+  width: auto !important;
+}
