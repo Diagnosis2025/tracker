@@ -282,25 +282,23 @@ body.sidebar-collapsed #mapPane{
   display: block;
 }
 
-.menu-wrapper { position: relative; display: inline-block; }
-.dropdown.hidden { display: none; }
-.dropdown {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  min-width: 140px;
+/* Menú: centrado debajo de la app bar (PC y móvil) */
+.dropdown-content {
+  position: fixed !important;
+  top: calc(var(--topbar-h, 60px) + 6px); /* un poquito debajo de la topbar */
+  left: 50%;
+  right: auto;
+  transform: translateX(-50%);            /* ← centrado real */
+  width: min(92vw, 360px);                /* no se sale en móvil */
+  max-height: calc(100vh - var(--topbar-h, 60px) - 12px);
+  overflow: auto;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  box-shadow: 0 12px 30px rgba(0,0,0,.15);
+  z-index: 3000;
+}
 
-  border-radius: 8px;
-  box-shadow: 0 10px 24px rgba(0,0,0,.12);
-  padding: 6px;
-  z-index: 2000;
-}
-.dropdown .btn {
-  display: block;
-  width: 100%;
-  text-align: left;
-  margin: 4px 0;
-}
 .btn-ghost { background: transparent; }
 
 /* caret en el botón */
@@ -515,15 +513,18 @@ body.sidebar-collapsed #mapPane{
 
 /* Dropdown alineado arriba a la derecha del botón */
 .refs-dropdown {
-  position: fixed !important;         /* <- no depender de la toolbar */
+  position: fixed !important;
   top: var(--topbar-h, 60px);
-  right: 12px;
-  left: 12px;                         /* que pueda ocupar ancho si hace falta */
-  max-width: min(100vw - 24px, 420px);/* opcional: limitá ancho en desktop */
+  right: 12px;        /* 👉 pegado a la derecha */
+  left: auto;         /* 👉 no ocupar desde la izquierda */
+  width: min(92vw, 420px);
   max-height: calc(100vh - var(--topbar-h, 60px) - 12px);
   overflow: auto;
   z-index: 3000;
   border-radius: 8px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 12px 30px rgba(0,0,0,.12), 0 2px 10px rgba(0,0,0,.08);
 }
 
 /* contenido */
@@ -913,3 +914,5 @@ body.sidebar-collapsed #mapPane{
   .left-sidebar { width: 240px; font-size: 13px; }
   #mapPane { padding-left: 240px; }
 }
+
+
