@@ -328,13 +328,13 @@ body.sidebar-collapsed #mapPane{
 }
 
 .dropdown-content {
-  position: absolute;
-  background-color: #f9f9f9;
-  min-width: 200px;
-  box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
-  z-index: 1000;
-  border-radius: 4px;
-  overflow: hidden;
+  position: fixed !important;         /* <- evita que lo recorte la toolbar */
+  top: var(--topbar-h, 60px);         /* alineado con la app bar */
+  right: 12px;                        /* pegado al borde derecho */
+  left: auto;
+  max-height: calc(100vh - var(--topbar-h, 60px) - 12px);
+  overflow: auto;
+  z-index: 3000;                      /* por encima de la topbar */
 }
 
 .dropdown-content a {
@@ -515,18 +515,15 @@ body.sidebar-collapsed #mapPane{
 
 /* Dropdown alineado arriba a la derecha del botón */
 .refs-dropdown {
-  position: absolute;
-  top: calc(100% + 8px);
-  right: 0;           /* 👈 clave para que salga a la derecha */
-  left: auto;
-  background: #ffffff;
-  min-width: 300px;
-  max-width: 360px;
-  border: 1px solid #eaeaea;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.12);
-  border-radius: 10px;
-  z-index: 1100;
-  padding: 8px 0;
+  position: fixed !important;         /* <- no depender de la toolbar */
+  top: var(--topbar-h, 60px);
+  right: 12px;
+  left: 12px;                         /* que pueda ocupar ancho si hace falta */
+  max-width: min(100vw - 24px, 420px);/* opcional: limitá ancho en desktop */
+  max-height: calc(100vh - var(--topbar-h, 60px) - 12px);
+  overflow: auto;
+  z-index: 3000;
+  border-radius: 8px;
 }
 
 /* contenido */
@@ -538,6 +535,31 @@ body.sidebar-collapsed #mapPane{
 .refs-title { font-size: 16px; color: #111827; }
 .refs-path  { font-size: 14px; color: #6b7280; }
 
+/* Fondo sólido y sombra para Referencias y Menú */
+.refs-dropdown,
+.dropdown-content {
+  background: #ffffff;                 /* ← fondo blanco */
+  border: 1px solid #e5e7eb;           /* borde suave */
+  box-shadow: 0 12px 30px rgba(0,0,0,.12), 0 2px 10px rgba(0,0,0,.08);
+}
+
+/* Ajustes de padding internos (opcional) */
+.refs-dropdown {
+  padding: 8px 0;
+}
+
+.dropdown-content a {
+  background: transparent;             /* que no herede nada raro */
+}
+
+/* En móvil también mantener el fondo cuando ocupa todo el ancho */
+@media (max-width: 1024px) {
+  .refs-dropdown {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 -12px 30px rgba(0,0,0,.12);
+  }
+}
 
 .report-result {
   background: #f8fafc;
@@ -549,11 +571,68 @@ body.sidebar-collapsed #mapPane{
 .report-result .kv {
   padding: 8px 0;
 }
-/* =========================
-   RESPONSIVE / MOBILE FIXES
-   ========================= */
-/* ========== FIXES APP BAR & DETAILS PANEL ========== */
 
+
+/* ===== Header: acciones a la derecha con gap ===== */
+.details-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.details-actions-head {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ===== Modo minimizado del panel de detalles ===== */
+.details-panel.minimized {
+  /* en desktop tipo "barra" baja; en móvil tipo "bottom sheet" chica */
+  max-height: 74px;
+  height: auto;
+  overflow: hidden;
+  border-top-left-radius: 12px;
+  border-top-right-radius: 12px;
+}
+
+.details-panel.minimized .details-body,
+.details-panel.minimized .details-actions {
+  display: none !important;   /* oculta contenido, deja solo el header */
+}
+
+/* Que el header siempre quede visible y se lea */
+.details-header {
+  position: sticky;
+  top: 0;
+  background: #fff;
+  z-index: 2;
+  padding: 12px 16px;
+}
+
+/* En móvil el alto del header un poquito mayor para tap-friendly */
+@media (max-width: 1024px) {
+  .details-panel.minimized {
+    max-height: 64px;
+  }
+}
+
+/* Evitar que la “manija” (si la tenés con ::before) tape los clicks */
+.details-panel::before { pointer-events: none; }
+
+/* ========================================================================================================================================================
+   RESPONSIVE / MOBILE FIXES
+   ====================================================================================================================================================== */
+/* ========== FIXES APP BAR & DETAILS PANEL ========== */
+@media (max-width: 1024px) {
+  .refs-dropdown {
+    right: 0;
+    left: 0;
+    max-width: none;
+    border-radius: 0;
+  }
+}
 /* 1) En móviles: que los botones de la TOPBAR NO ocupen 100% de ancho */
 @media (max-width: 480px) {
   .topbar .btn,
@@ -566,17 +645,28 @@ body.sidebar-collapsed #mapPane{
     padding: 8px 10px;   /* coherente con tus reglas */
     font-size: 13px;
     min-height: 36px;
-    line-height: 1.2;
+    line-height: 1.1;
     white-space: nowrap;
     flex: 0 0 auto;
   }
 
   /* Evitar que el contenedor “estire” los botones */
-  .topbar .toolbar {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
+.topbar .toolbar {
+  display: flex;
+  flex-wrap: nowrap;           /* <- evita que bajen a otra línea */
+  overflow-x: auto;            /* <- permite desplazar horizontal */
+  -webkit-overflow-scrolling: touch;
+  gap: 6px;
+  white-space: nowrap;         /* <- por si algún botón es inline */
+}
+.topbar {
+  z-index: 2000;
+}
+.topbar .btn,
+.topbar .dropdown > .btn,
+.topbar .refs-btn {
+  flex: 0 0 auto;              /* <- que no se estiren ni encojan */
+}
 }
 
 /* 2) En tablets/móviles: asegurar layout correcto del header de paneles
@@ -625,19 +715,111 @@ body.sidebar-collapsed #mapPane{
 }
 
 /* 5) En móviles: no “estirar” botones fuera de paneles de contenido */
+/* ===== Detalles del dispositivo: versión compacta SOLO en móviles ===== */
 @media (max-width: 480px) {
-  /* Tu regla original fuerza width:100% para .btn.
-     La limitamos solo a botones dentro de paneles / formularios,
-     NO a la topbar */
-  .right-drawer .btn,
-  .details-panel .btn {
-    width: 100%;
+  /* Panel contenedor */
+  .details-panel {
+    font-size: 12px;
   }
-  /* Y explícitamente neutralizamos en la topbar */
-  .topbar .btn {
-    width: auto !important;
+
+  /* Encabezado (título + botones) */
+  .details-header {
+    padding: 10px 12px !important;
+    gap: 8px;
+  }
+  .details-header .muted {
+    font-size: 11px;
+  }
+  .details-header .big {
+    font-size: 16px;   /* antes 18+ */
+    line-height: 1.2;
+  }
+  .details-header .btn-sm {
+    min-height: 32px;
+    padding: 4px 8px;
+    font-size: 12px;
+  }
+
+  /* Cuerpo (pares clave-valor) */
+  .details-body {
+    padding: 12px !important;
+  }
+  .kv {
+    padding: 6px 0;
+    gap: 6px;
+  }
+  .kv .k {
+    font-size: 12px;
+  }
+  .kv .k .ico {
+    margin-right: 6px;
+    font-size: 14px;
+  }
+  .kv .v {
+    font-size: 12px;
+  }
+
+  /* Títulos/secciones */
+  .section-title {
+    font-size: 12px;
+    margin: 10px 0 6px;
+  }
+  .group-title {
+    font-size: 12px;
+    margin-bottom: 8px;
+  }
+
+  /* Acciones/chips */
+  .details-actions {
+    padding: 12px !important;
+  }
+  .chips {
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .chip {
+    padding: 6px 10px;
+    font-size: 12px;
+    min-height: 30px;
+    line-height: 1.1;
+    flex: 0 0 auto;
+  }
+
+  /* Grid de fechas */
+  .grid2 {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px !important;
+  }
+  .grid2 label {
+    font-size: 12px;
+  }
+
+  /* Inputs/controles dentro del panel */
+  .details-panel input[type="datetime-local"] {
+    min-height: 36px;
+    padding: 8px 10px;
+    font-size: 12px;         /* suficiente para evitar zoom iOS si ya tenés regla global */
+  }
+
+  /* Botones de acciones (Buscar/Descargar) dentro del panel */
+  .details-panel .btn {
+    padding: 8px 10px;
+    font-size: 12px;
+    min-height: 32px;
+  }
+  .details-panel .btn.btn-sm {
+    padding: 6px 8px;
+    font-size: 12px;
+    min-height: 30px;
+  }
+
+  /* Popup de puntos (cuando pasás por encima) también más chico */
+  .route-popup {
+    font-size: 12px;
+    line-height: 1.35;
   }
 }
+
 
 /* 6) Por si algún user-agent aplica estilos raros al botón de cerrar (×) */
 .btn.btn-sm {
@@ -660,4 +842,74 @@ body.sidebar-collapsed #mapPane{
   display: inline-flex;
   gap: 6px;
   align-items: center;
+}
+
+/* ===== Left sidebar más chica SOLO en móviles ===== */
+@media (max-width: 480px) {
+  /* Contenedor del sidebar */
+  .left-sidebar {
+    width: 220px;                 /* más angosto (ajustable) */
+    font-size: 12px;              /* base más chica */
+  }
+
+  /* Header del sidebar */
+  .left-sidebar .sp-header {
+    padding: 10px 12px;
+  }
+  .left-sidebar .sp-title {
+    font-size: 11px;
+    letter-spacing: .3px;
+  }
+  .left-sidebar .sp-user {
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  /* Separadores/títulos de sección */
+  .left-sidebar .sp-section-title {
+    font-size: 12px;
+    padding: 8px 12px;
+  }
+
+  /* Filas de métricas */
+  .left-sidebar .sp-row {
+    padding: 8px 12px;            /* menos alto */
+    min-height: 36px;             /* sigue siendo tocable */
+  }
+  .left-sidebar .sp-icon {
+    font-size: 14px;              /* icono más chico */
+    margin-right: 8px;
+  }
+  .left-sidebar .sp-label {
+    font-size: 12px;
+  }
+  .left-sidebar .sp-value {
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  /* Botón de colapso (pestañita) más pequeño */
+  .left-sidebar .collapse-handle {
+    width: 22px;
+    height: 42px;
+    font-size: 12px;
+    line-height: 42px;
+  }
+
+  /* Cuando esté colapsado, que no deje margen en el mapa */
+  body.sidebar-collapsed #mapPane {
+    padding-left: 0 !important;
+  }
+
+  /* Si tu layout usa padding-left para el mapa cuando el sidebar está abierto,
+     reducilo en móvil para ganar espacio: */
+  #mapPane {
+    padding-left: 220px;          /* debe coincidir con .left-sidebar width */
+  }
+}
+
+/* Si también querés achicar en tablets chicas, podés ampliar el breakpoint: */
+@media (min-width: 481px) and (max-width: 768px) {
+  .left-sidebar { width: 240px; font-size: 13px; }
+  #mapPane { padding-left: 240px; }
 }

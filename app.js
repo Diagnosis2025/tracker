@@ -39,6 +39,111 @@ const flagEndIcon = L.icon({
 });
 
 // =================== helpers UI (exclusividad de paneles) ===================
+
+function downloadReportPDF() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  
+  // Obtener datos del informe
+  const vehicleName = el('reportVehicleName').textContent;
+  const period = el('reportPeriod').textContent;
+  const km = el('reportKm').textContent;
+  const points = el('reportPoints').textContent;
+  
+  // Configurar fuente y colores
+  doc.setFont("helvetica");
+  
+  // Título principal
+  doc.setFontSize(18);
+  doc.setTextColor(37, 99, 235); // Azul
+  doc.text("Informe de Kilómetros Recorridos", 105, 20, { align: "center" });
+  
+  // Subtítulo
+  doc.setFontSize(12);
+  doc.setTextColor(100, 100, 100);
+  doc.text("Generado desde la aplicación Diagnosis Tracker", 105, 28, { align: "center" });
+  
+  // Línea separadora
+  doc.setDrawColor(200, 200, 200);
+  doc.line(20, 35, 190, 35);
+  
+  // Contenido del informe
+  doc.setFontSize(11);
+  doc.setTextColor(0, 0, 0);
+  
+  let y = 50;
+  
+  // Vehículo
+  doc.setFont("helvetica", "bold");
+  doc.text("Vehículo:", 20, y);
+  doc.setFont("helvetica", "normal");
+  doc.text(vehicleName, 60, y);
+  y += 10;
+  
+  // Período
+  doc.setFont("helvetica", "bold");
+  doc.text("Período:", 20, y);
+  doc.setFont("helvetica", "normal");
+  doc.text(period, 60, y);
+  y += 15;
+  
+  // Resultado principal (destacado)
+  doc.setFillColor(240, 249, 255);
+  doc.roundedRect(15, y - 5, 180, 20, 3, 3, 'F');
+  doc.setFontSize(14);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(37, 99, 235);
+  doc.text("Kilómetros recorridos:", 20, y + 5);
+  doc.setFontSize(16);
+  doc.text(km, 150, y + 5, { align: "right" });
+  y += 25;
+  
+  // Puntos procesados
+  doc.setFontSize(10);
+  doc.setTextColor(100, 100, 100);
+  doc.setFont("helvetica", "normal");
+  doc.text(`Datos procesados: ${points} puntos GPS`, 20, y);
+  y += 15;
+  
+  // Resumen en texto
+  doc.setFontSize(11);
+  doc.setTextColor(0, 0, 0);
+  const kmValue = el('reportKm').textContent.replace(' km', '');
+  const deviceId = el('reportDeviceSelect').value;
+  const displayName = getDisplayName(deviceId);
+  const [fromPeriod, toPeriod] = period.split(' → ');
+  
+  const summaryText = `El vehículo "${displayName}" recorrió ${kmValue} kilómetros desde ${fromPeriod} hasta ${toPeriod}.`;
+  
+  const lines = doc.splitTextToSize(summaryText, 170);
+  doc.text(lines, 20, y);
+  y += lines.length * 7 + 10;
+  
+  // Nota técnica
+  doc.setFontSize(9);
+  doc.setTextColor(120, 120, 120);
+  doc.text("Nota: El cálculo se realizó en base a coordenadas GPS registradas por el dispositivo.", 20, y);
+  y += 5;
+  doc.text("Se filtraron saltos superiores a 5 km para evitar lecturas erróneas.", 20, y);
+  
+  // Footer
+  doc.setDrawColor(200, 200, 200);
+  doc.line(20, 270, 190, 270);
+  doc.setFontSize(8);
+  doc.setTextColor(150, 150, 150);
+  const date = new Date();
+  const dateStr = `${date.getDate()}/${date.getMonth()+1}/${date.getFullYear()} ${date.getHours()}:${String(date.getMinutes()).padStart(2,'0')}`;
+  doc.text(`Diagnosis S.A. - Generado el ${dateStr}`, 105, 280, { align: "center" });
+  doc.text("argentinadiagnosis@gmail.com", 105, 285, { align: "center" });
+  
+  // Descargar
+  const filename = `Informe_${displayName.replace(/\s+/g, '_')}_${fmtDate(new Date()).replace(/-/g, '')}.pdf`;
+  doc.save(filename);
+  
+  showToast('Informe PDF descargado');
+}
+
+
 function closePanelsExcept(exceptId = null) {
   ['searchPanel', 'fleetPanel', 'detailsPanel'].forEach(id => {
     if (id !== exceptId) el(id).classList.add('hidden');
@@ -86,7 +191,7 @@ function showSearch()   { openPanel('searchPanel'); }
 function hideSearch()   { el('searchPanel').classList.add('hidden'); }
 function showFleet()    { openPanel('fleetPanel'); }
 function hideFleet()    { el('fleetPanel').classList.add('hidden'); }
-function showDetails()  { openPanel('detailsPanel'); }
+function showDetails()  {   openPanel('detailsPanel');  el('detailsPanel').classList.remove('minimized'); }
 function hideDetails()  { el('detailsPanel').classList.add('hidden'); }
 function showStatus()   { openPanel('statusPanel'); }
 function hideStatus()   { el('statusPanel').classList.add('hidden'); }
@@ -791,6 +896,8 @@ document.getElementById('menuReports')?.addEventListener('click', (e) => {
 
 el('btnCloseReports')?.addEventListener('click', hideReports);
 el('btnGenerateReport')?.addEventListener('click', generateKmReport);
+el('btnDownloadReport')?.addEventListener('click', downloadReportPDF);
+
 // ===== Referencias (dropdown a la izquierda) =====
 const btnRefs = document.getElementById('btnRefs');
 const refsContent = document.getElementById('refsContent');
@@ -819,6 +926,10 @@ async function onLogin() {
   const password = el('password').value.trim();
   loginPassword = password; 
   if (!username || !password) { showToast('Usuario y contraseña requeridos'); return; }
+// Después de showStatus();
+if (window.matchMedia('(max-width: 1024px)').matches) {
+  setSidebarCollapsed(true);   // ← arranca minimizado en móvil/tablet
+}
 
   try {
     const res = await apiLogin({ username, password });
@@ -1074,14 +1185,25 @@ el('btnCloseSearch').addEventListener('click', hideSearch);
 
 el('btnFleet').addEventListener('click', showFleet);
 el('btnCloseFleet').addEventListener('click', hideFleet);
+// Minimizar / expandir detalles sin perder la ruta
+el('btnMinimizeDetails')?.addEventListener('click', () => {
+  const panel = el('detailsPanel');
+  const btn   = el('btnMinimizeDetails');
+  panel.classList.toggle('minimized');
+
+  const minimized = panel.classList.contains('minimized');
+  // Cambiamos el ícono y el título del botón
+  btn.textContent = minimized ? '▴' : '▾';
+  btn.title = minimized ? 'Expandir' : 'Minimizar';
+});
 
 el('btnCloseDetails').addEventListener('click', async () => {
   hideDetails();
-  clearRoute();
-  // volver a mostrar autos y refrescar últimos puntos
+  clearRoute();                   // ← si querés mantener la ruta, quitá esta línea
   showFleetMarkers();
   if (devices?.length) await loadLastPoints(devices);
 });
+
 
 el('btnApplyRange').addEventListener('click', onApplyRange);
 el('btnDownload').addEventListener('click', onDownloadCsv);
