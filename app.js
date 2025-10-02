@@ -1214,15 +1214,66 @@ el('detailsPanel').addEventListener('click', (ev) => {
 });
 
 // locate (center on browser location)
+// locate (center on browser location and add circle marker)
 el('btnLocate').addEventListener('click', async () => {
   if (!map) return;
   if (!navigator.geolocation) { showToast('Geolocalización no disponible'); return; }
+  
   navigator.geolocation.getCurrentPosition(
     (pos) => {
       const { latitude, longitude } = pos.coords;
+      
+      // Centrar el mapa en la ubicación
       map.setView([latitude, longitude], 14);
+      
+      // Eliminar marcador anterior si existe
+      if (window.currentLocationMarker) {
+        map.removeLayer(window.currentLocationMarker);
+      }
+      
+      // Crear y agregar círculo para la ubicación actual
+      window.currentLocationMarker = L.circleMarker([latitude, longitude], {
+        radius: 8,
+        fillColor: "#3388ff",
+        color: "#ffffff",
+        weight: 2,
+        opacity: 1,
+        fillOpacity: 0.8
+      }).addTo(map);
+      
+      // Agregar popup con información
+      window.currentLocationMarker.bindPopup(`
+        <div class="location-popup">
+          <strong>Tu ubicación actual</strong><br>
+          Lat: ${latitude.toFixed(6)}<br>
+          Lon: ${longitude.toFixed(6)}<br>
+          Precisión: ${pos.coords.accuracy ? pos.coords.accuracy.toFixed(0) + 'm' : 'N/A'}<br>
+          ${new Date().toLocaleString()}
+        </div>
+      `).openPopup();
+      
+      showToast('Ubicación encontrada y marcada');
     },
-    () => showToast('No se pudo obtener tu ubicación'),
-    { enableHighAccuracy: true, timeout: 7000 }
+    (error) => {
+      console.error('Error getting location:', error);
+      let message = 'No se pudo obtener tu ubicación';
+      switch(error.code) {
+        case error.PERMISSION_DENIED:
+          message = 'Permiso de ubicación denegado';
+          break;
+        case error.POSITION_UNAVAILABLE:
+          message = 'Información de ubicación no disponible';
+          break;
+        case error.TIMEOUT:
+          message = 'Tiempo de espera agotado para obtener la ubicación';
+          break;
+      }
+      showToast(message);
+    },
+    { 
+      enableHighAccuracy: true, 
+      timeout: 10000,
+      maximumAge: 60000 
+    }
   );
 });

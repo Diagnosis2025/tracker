@@ -177,84 +177,120 @@
 
 <body>
   <header class="topbar hidden">
-    <div class="brand">
-      <img src="./assets/images/ic_launcher.png" alt="Icono" class="brand-icon" />
-      <span>Diagnosis Track</span>
-    </div>
-    <div class="toolbar">
-      <!-- Botón de menú con dropdown -->
-      <div class="dropdown">
-        <button id="btnMenu" class="btn" aria-expanded="false">Menú</button>
-        <div id="menuContent" class="dropdown-content hidden">
-          <a href="#" id="menuLoadCSV">Cargar rutas desde archivo .csv</a>
-          <a href="#" id="menuEdit" class="hidden">Editar atributos</a>
-          <a href="#" id="menuReports">Informe de KM</a>
-          <a href="#" id="menuExit">Salir</a>
-        </div>
-      </div>
-
-
-      <button id="btnRefresh" class="btn">Actualizar</button>
-      <button id="btnSearch" class="btn">Buscar</button>
-      <button id="btnFleet" class="btn">Mi flota</button>
-      <button id="btnLocate" class="btn">Mi ubicación</button>
-      <span class="units">N° de unidades: <strong id="unitsCount">0</strong></span>
-      <div class="refs-wrap">
-        <button id="btnRefs" class="refs-btn" aria-expanded="false">Referencias</button>
-        <div id="refsContent" class="refs-dropdown hidden" role="menu" aria-label="Referencias de iconos">
-          <div class="refs-header">Referencias de iconos</div>
-
-          <div class="refs-item">
-            <img src="assets/car_moving_green_play.svg" alt="Vehículo en tránsito" />
-            <div class="refs-text">
-              <div class="refs-title">Vehículo en tránsito</div>
-              <div class="refs-path">En movimiento</div>
-            </div>
-          </div>
-
-          <div class="refs-item">
-            <img src="assets/car_stopped_green_stop.svg" alt="Vehículo detenido" />
-            <div class="refs-text">
-              <div class="refs-title">Vehículo detenido</div>
-              <div class="refs-path">Estacionado con motor en marcha</div>
-            </div>
-          </div>
-
-          <div class="refs-item">
-            <img src="assets/car_yellow.svg" alt="Vehículo apagado" />
-            <div class="refs-text">
-              <div class="refs-title">Vehículo apagado</div>
-              <div class="refs-path">Estacionado con motor apagado</div>
-            </div>
-          </div>
-
-          <div class="refs-item">
-            <img src="assets/car_gray_warning_triangle.svg" alt="Vehículo sin reportar por 5 hs" />
-            <div class="refs-text">
-              <div class="refs-title">Vehículo sin reportar por 5 hs</div>
-              <div class="refs-path">Gps sin reporte</div>
-            </div>
-          </div>
-          <div class="refs-item">
-            <img src="assets/icon_descargando_arrow.svg" alt="Descargando" />
-            <div class="refs-text">
-              <div class="refs-title">Descargando datos</div>
-              <div class="refs-path">Descargando datos anteriores</div>
-            </div>
-          </div>
-          <div class="refs-item">
-            <img src="assets/car_red_panic_sos.svg" alt="Vehículo en Pánico" />
-            <div class="refs-text">
-              <div class="refs-title">Vehículo en Pánico</div>
-              <div class="refs-path">Necesita asistencia inmediata</div>
-            </div>
-          </div>
-
-
-        </div>
+  <div class="brand">
+    <img src="./assets/images/ic_launcher.png" alt="Icono" class="brand-icon" />
+    <span>Diagnosis Track</span>
+  </div>
+  <div class="toolbar">
+    <!-- Botón de menú hamburguesa -->
+    <div class="dropdown">
+      <button id="btnMenu" class="btn btn-icon-text" aria-expanded="false">
+        <span class="icon">☰</span>
+        <span class="text">Menú</span>
+      </button>
+      <div id="menuContent" class="dropdown-content hidden">
+        <a href="#" id="menuLoadCSV" class="menu-item">
+          <span class="menu-icon">📁</span>
+          <span>Cargar rutas desde archivo .csv</span>
+        </a>
+        <a href="#" id="menuEdit" class="menu-item hidden">
+          <span class="menu-icon">✏️</span>
+          <span>Editar atributos</span>
+        </a>
+        <a href="#" id="menuReports" class="menu-item">
+          <span class="menu-icon">📊</span>
+          <span>Informe de KM</span>
+        </a>
+        <a href="#" id="menuExit" class="menu-item">
+          <span class="menu-icon">🚪</span>
+          <span>Salir</span>
+        </a>
       </div>
     </div>
-  </header>
+
+    <button id="btnRefresh" class="btn btn-icon-text">
+      <span class="icon">🔄</span>
+      <span class="text">Actualizar</span>
+    </button>
+    
+    <button id="btnSearch" class="btn btn-icon-text">
+      <span class="icon">🔍</span>
+      <span class="text">Buscar</span>
+    </button>
+    
+    <button id="btnFleet" class="btn btn-icon-text">
+      <span class="icon">🚗</span>
+      <span class="text">Mi flota</span>
+    </button>
+    
+    <button id="btnLocate" class="btn btn-icon-text">
+      <span class="icon">📍</span>
+      <span class="text">Mi ubicación</span>
+    </button>
+    
+    <span class="units">
+      <span class="icon">📱</span>
+      <span>N° de unidades: <strong id="unitsCount">0</strong></span>
+    </span>
+    
+    <div class="refs-wrap">
+      <button id="btnRefs" class="btn btn-icon-text" aria-expanded="false">
+        <span class="icon">ℹ️</span>
+        <span class="text">Referencias</span>
+      </button>
+      <div id="refsContent" class="refs-dropdown hidden" role="menu" aria-label="Referencias de iconos">
+        <div class="refs-header">Referencias de iconos</div>
+       <div class="refs-item">
+      <img src="assets/car_moving_green_play.svg" alt="Vehículo en tránsito" />
+      <div class="refs-text">
+        <div class="refs-title">Vehículo en tránsito</div>
+        <div class="refs-path">En movimiento</div>
+      </div>
+    </div>
+
+    <div class="refs-item">
+      <img src="assets/car_stopped_green_stop.svg" alt="Vehículo detenido" />
+      <div class="refs-text">
+        <div class="refs-title">Vehículo detenido</div>
+        <div class="refs-path">Estacionado con motor en marcha</div>
+      </div>
+    </div>
+
+    <div class="refs-item">
+      <img src="assets/car_yellow.svg" alt="Vehículo apagado" />
+      <div class="refs-text">
+        <div class="refs-title">Vehículo apagado</div>
+        <div class="refs-path">Estacionado con motor apagado</div>
+      </div>
+    </div>
+
+    <div class="refs-item">
+      <img src="assets/car_gray_warning_triangle.svg" alt="Vehículo sin reportar por 5 hs" />
+      <div class="refs-text">
+        <div class="refs-title">Vehículo sin reportar por 5 hs</div>
+        <div class="refs-path">Gps sin reporte</div>
+      </div>
+    </div>
+    
+    <div class="refs-item">
+      <img src="assets/icon_descargando_arrow.svg" alt="Descargando" />
+      <div class="refs-text">
+        <div class="refs-title">Descargando datos</div>
+        <div class="refs-path">Descargando datos anteriores</div>
+      </div>
+    </div>
+    
+    <div class="refs-item">
+      <img src="assets/car_red_panic_sos.svg" alt="Vehículo en Pánico" />
+      <div class="refs-text">
+        <div class="refs-title">Vehículo en Pánico</div>
+        <div class="refs-path">Necesita asistencia inmediata</div>
+      </div>
+    </div>
+      </div>
+    </div>
+  </div>
+</header>
 
   <!-- AUTH PANE -->
   <main id="authPane" class="pane">
