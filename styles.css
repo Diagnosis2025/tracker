@@ -759,8 +759,8 @@ body.sidebar-collapsed #mapPane{
     bottom: 0;
     left: 0;
     right: 0;
-    width: 100vw !important;
-    max-height: 80vh;              /* no tapa toda la pantalla */
+    width: auto !important;
+    max-height: 90vh;              /* no tapa toda la pantalla */
     height: auto;
     border-left: 0;
     border-right: 0;
@@ -1005,3 +1005,135 @@ body.sidebar-collapsed #mapPane{
     }
   }
 }
+
+/* =======================================================
+   MOBILE (<=480px) — Panels como bottom-sheet + menú centrado
+   ======================================================= */
+@media (max-width: 480px) {
+  /* ---------- TOPBAR ---------- */
+  .topbar { z-index: 4000; }             /* por encima del mapa */
+  .topbar .toolbar {
+    display: flex; flex-wrap: nowrap;
+    overflow-x: auto; gap: 6px; white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+  }
+  .topbar .btn { width: auto !important; }
+
+  /* ---------- MENÚ (centrado y visible) ---------- */
+  /* Forzamos sólo el menú principal usando su ID */
+  #menuContent {
+    position: fixed !important;
+    top: calc(var(--topbar-h, 60px) + 6px);
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+    width: min(96vw, 220px);
+    max-height: calc(100vh - var(--topbar-h, 60px) - 16px);
+    overflow: auto;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    box-shadow: 0 12px 30px rgba(0,0,0,.15);
+    z-index: 3600;                       /* por encima de paneles */
+  }
+  /* Asegurar que el ocultamiento funcione */
+  #menuContent.hidden { display: none !important; }
+
+  /* ---------- REFERENCIAS (a la derecha) ---------- */
+  #refsContent {
+    position: fixed !important;
+    top: calc(var(--topbar-h, 60px) + 6px);
+    right: 12px;
+    left: auto;
+    width: min(92vw, 420px);
+    max-height: calc(100vh - var(--topbar-h, 60px) - 16px);
+    overflow: auto;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    box-shadow: 0 12px 30px rgba(0,0,0,.12), 0 2px 10px rgba(0,0,0,.08);
+    z-index: 3400;
+  }
+  #refsContent.hidden { display: none !important; }
+
+  /* ---------- RIGHT DRAWERS como bottom-sheet ---------- */
+  /* Aplicamos a Buscar, Mi flota y Editar (y dejá tu bloque de details si ya lo tenés) */
+  #searchPanel,
+  #fleetPanel,
+  #editPanel {
+    position: fixed !important;
+    top: auto; bottom: 0; left: 0; right: 0;
+    width: 100vw !important;
+    max-height: 80vh;
+    height: auto;
+    border-left: 0; border-right: 0;
+    border-top: 1px solid #e5e7eb;
+    border-top-left-radius: 14px;
+    border-top-right-radius: 14px;
+    box-shadow: 0 -12px 30px rgba(0,0,0,.15);
+    background: #fff;
+    display: flex; flex-direction: column;
+    overflow: hidden;                    /* scroll va dentro */
+    z-index: 3300;
+    font-size: 13px;                     /* compacto */
+  }
+
+  /* Header fijo en la parte superior del panel */
+  #searchPanel > header,
+  #fleetPanel  > header,
+  #editPanel   > header {
+    position: sticky; top: 0; z-index: 2;
+    background: #fff;
+    padding: 10px 12px !important;
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    border-bottom: 1px solid #e5e7eb;
+  }
+  #searchPanel > header h3,
+  #fleetPanel  > header h3,
+  #editPanel   > header h3 {
+    margin: 0; font-size: 16px;
+  }
+  #searchPanel .btn-sm,
+  #fleetPanel  .btn-sm,
+  #editPanel   .btn-sm {
+    min-height: 32px; padding: 4px 8px; font-size: 12px; line-height: 1;
+  }
+
+  /* Cuerpo scrolleable */
+  #searchPanel .content,
+  #fleetPanel  .content,
+  #editPanel   .content {
+    padding: 12px 14px !important;
+    overflow-y: auto;
+  }
+
+  /* Densidad tipográfica y controles */
+  #searchPanel input,
+  #editPanel   input,
+  #editPanel   select {
+    min-height: 36px; padding: 8px 10px; font-size: 12px; width: 100%;
+  }
+  #searchPanel .btn,
+  #editPanel   .btn {
+    padding: 8px 10px; font-size: 12px; min-height: 32px; width: 100%;
+  }
+
+  /* Listado de flota más compacto */
+  #fleetPanel #fleetList { margin: 0; padding: 0; list-style: none; }
+  #fleetPanel #fleetList li {
+    padding: 10px 8px; border-bottom: 1px solid #f1f5f9; font-size: 13px;
+    display: flex; align-items: center; gap: 8px; justify-content: space-between;
+  }
+  #fleetPanel #fleetList li button.btn {
+    padding: 6px 10px; font-size: 12px; min-height: 32px; width: auto;
+  }
+
+  /* Grillas del editor en 1 columna (por si faltaba) */
+  #editPanel .grid2 { grid-template-columns: 1fr; gap: 8px !important; }
+}
+
+/* ====== Seguridad extra (fuera del @media) ====== */
+/* Evitar que reglas genéricas vuelvan a mover el menú */
+#menuContent { right: auto !important; left: 50% !important; transform: translateX(-50%) !important; }
+/* Asegurar referencias a la derecha siempre */
+#refsContent { right: 12px !important; left: auto !important; }
