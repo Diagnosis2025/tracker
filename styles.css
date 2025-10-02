@@ -4,9 +4,17 @@ body, html { margin: 0; height: 100%; font-family: system-ui, Arial, sans-serif;
 .hidden { display: none !important; }
 
 .topbar {
+  position: sticky;
+  overflow: visible !important;
   height: 58px; display: flex; align-items: center; justify-content: space-between;
   padding: 0 12px; background:#111827; color:#fff; gap:10px;
 }
+#btnMenu {
+  position: relative;          /* ancla seguro en desktop */
+  z-index: 4100;               /* por encima de otros botones */
+}
+
+
 .topbar .brand { font-weight:700; }
 .topbar .toolbar { display:flex; gap:8px; align-items:center; flex-wrap: wrap; }
 .units strong { font-size: 16px; }
@@ -1223,3 +1231,5 @@ body.sidebar-collapsed #mapPane{
 
 /* Seguridad extra por si tenés reglas viejas que pisan posiciones */
 #reportsPanel { right: 0 !important; left: auto !important; }
+
+
