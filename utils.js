@@ -7,6 +7,21 @@ export function showToast(msg, ms=2500) {
   setTimeout(() => t.classList.add('hidden'), ms);
 }
 
+const EVENT_MAP = {
+  TRANSIT: new Set([10, 31]),
+  DETENIDO: new Set([11]),
+  APAGADO: new Set([30]),
+  PANICO: new Set([20, 21]),
+};
+
+function normalizeType(t) {
+  const s = String(t || '').toLowerCase();
+  if (s.startsWith('mot')) return 'moto';
+  if (s.startsWith('traf')) return 'trafic';
+  if (s.startsWith('cam')) return 'camion';
+  return 'auto'; // default
+}
+
 export function parseDevicesInput(s) {
   if (!s || !s.trim()) return [];
   return s.split(',').map(x => x.trim()).filter(Boolean);
@@ -72,29 +87,26 @@ export function haversineKm(lat1, lon1, lat2, lon2) {
 }
 
 // En utils.js - modificar la función carIconByEvent
-export function carIconByEvent(ev) {
-  // Si recibe el string 'stale', usar icono gris
+export function iconByTypeAndEvent(type, ev) {
+  const T = normalizeType(type);
+
   if (ev === 'stale') {
-    return 'assets/car-gray.svg';
+    return `assets/${T}_sindatos.svg`;
   }
-  
-  // Lógica original para eventos numéricos
-  const eventNum = typeof ev === 'string' ? parseInt(ev) : ev;
-  
-  switch (eventNum) {
-    case 10: // en movimiento
-      return 'assets/car_moving_green_play.svg';
-    case 31: // movimiento
-      return 'assets/car_moving_green_play.svg';
-    case 11: // detenido
-      return 'assets/car_stopped_green_stop.svg';
-    case 21: // en movimiento
-      return 'assets/car_red_panic_sos.svg';
-    case 30: // detenido
-      return 'assets/car_yellow.svg';
-    default:
-      return 'assets/car-blue.svg';
-  }
+
+  const eventNum = typeof ev === 'string' ? parseInt(ev, 10) : ev;
+
+  if (EVENT_MAP.TRANSIT.has(eventNum))  return `assets/${T}_transito.svg`;
+  if (EVENT_MAP.DETENIDO.has(eventNum)) return `assets/${T}_detenido.svg`;
+  if (EVENT_MAP.APAGADO.has(eventNum))  return `assets/${T}_apagado.svg`;
+  if (EVENT_MAP.PANICO.has(eventNum))   return `assets/${T}_panico.svg`;
+
+  // Fallback razonable
+  return `assets/${T}_detenido.svg`;
+}
+// Compat: versión solo-auto que ya usabas
+export function carIconByEvent(ev) {
+  return iconByTypeAndEvent('auto', ev);
 }
 
 export function fmtDate(d) {
