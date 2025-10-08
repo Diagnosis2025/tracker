@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Creator: CorelDRAW 2020 (64-Bit) -->
+<svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" width="86px" height="68px" version="1.1" style="shape-rendering:geometricPrecision; text-rendering:geometricPrecision; image-rendering:optimizeQuality; fill-rule:evenodd; clip-rule:evenodd"
+viewBox="0 0 86 68"
+ xmlns:xlink="http://www.w3.org/1999/xlink"
+ xmlns:xodm="http://www.corel.com/coreldraw/odm/2003">
+ <defs>
+  <style type="text/css">
+   <![CDATA[
+    .str0 {stroke:#373435;stroke-width:1.25;stroke-miterlimit:22.9256}
+    .str1 {stroke:#373435;stroke-width:2.36;stroke-miterlimit:22.9256}
+    .fil3 {fill:#FEFEFE}
+    .fil4 {fill:#373435}
+    .fil0 {fill:#00A859}
+    .fil1 {fill:#010101}
+    .fil2 {fill:#FEFEFE}
+   ]]>
+  </style>
+ </defs>
+ <g id="Capa_x0020_1">
+  <metadata id="CorelCorpID_0Corel-Layer"/>
+  <path class="fil0" d="M37.74 36.57l0.85 6.56 -17.31 -0.1c1.1,-4.06 10.64,-6.68 16.46,-6.46zm3.48 0.11c4.96,-0.22 15.49,2.83 17.8,7.29 -4.27,-0.16 -8.58,-0.36 -12.85,-0.45 -2.57,-0.05 -5.42,1.49 -4.95,-6.84zm-31.77 22.84c0.54,-5.73 2.29,-10.25 8.63,-10.13 5.7,0.1 8.29,4.32 8.17,10.11l32.91 -0.17c-0.75,-13.26 17.21,-13.52 16.62,0.18l5.63 -0.3c4.56,-16.59 -11.18,-13.25 -17.07,-15.96 -1.05,-0.48 -3.63,-2.69 -5.15,-3.69 -5.15,-3.4 -12.85,-5.35 -19.22,-5.85 -16.6,-1.33 -18.96,5.9 -25.82,8.11 -5.21,1.68 -9.1,1.24 -9.93,7.22 -0.9,6.44 -1.52,10.82 5.23,10.48z"/>
+  <path class="fil1" d="M11.5 58.81c1.09,8.05 13.99,6.77 12.81,-2.03 -1.07,-7.92 -14.04,-7.04 -12.81,2.03z"/>
+  <path class="fil1" d="M61.05 58.81c1.02,7.5 13.96,6.9 12.8,-2.05 -1.02,-7.85 -14.01,-6.76 -12.8,2.05z"/>
+  <path class="fil2" d="M46.17 43.52c4.27,0.09 8.58,0.29 12.85,0.45 -2.31,-4.46 -12.84,-7.51 -17.8,-7.29 -0.47,8.33 2.38,6.79 4.95,6.84z"/>
+  <path class="fil2" d="M37.74 36.57c-5.82,-0.22 -15.36,2.4 -16.46,6.46l17.31 0.1 -0.85 -6.56z"/>
+  <path class="fil3" d="M14.19 58.37c0.63,4.68 8.12,3.94 7.43,-1.17 -0.62,-4.6 -8.14,-4.09 -7.43,1.17z"/>
+  <path class="fil3" d="M63.73 58.34c0.63,4.67 8.12,3.93 7.43,-1.18 -0.62,-4.59 -8.14,-4.09 -7.43,1.18z"/>
+  <ellipse class="fil0 str0" cx="29.08" cy="21.23" rx="16.76" ry="15.27"/>
+  <polygon class="fil4 str1" points="23.23,14.89 36.66,21.04 23.23,27.6 "/>
+ </g>
+</svg>
