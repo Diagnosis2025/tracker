@@ -1,4 +1,4 @@
-import { API_BASE, showToast, parseDevicesInput, carIconByEvent, eventLabel, fmtDate, fmtTime, downloadCsv, reverseGeocode, sleep, haversineKm } from './utils.js';
+import { API_BASE, showToast, parseDevicesInput, carIconByEvent, eventLabel, fmtDate, fmtTime, downloadCsv, reverseGeocode, sleep, haversineKm, iconByTypeAndEvent } from './utils.js';
 import { apiLogin, apiLastReading, apiReadingsRange } from './api.js';
 import { initCSVModule } from './load-csv.js';
 
@@ -18,6 +18,7 @@ let transitIds = [];
 let detenidoIds = [];
 let sinRepIds = [];
 let fleetMarkersHidden = false;
+let baseTileLayer = null; // ← referencia al tile base
 
 const normDeg = (d) => ((d % 360) + 360) % 360;
 // Offset si tu SVG apunta al Este (→). Si tu SVG apunta al Norte (↑), dejalo en 0.
@@ -39,6 +40,43 @@ const flagEndIcon = L.icon({
 });
 
 // =================== helpers UI (exclusividad de paneles) ===================
+function getDeviceType(id) {
+  const m = getDeviceMeta(id) || {};
+  // admite 'type' o 'tipo' en el meta por dispositivo
+  return (m.type || m.tipo || user?.data?.tipo || 'auto');
+}
+
+
+
+function clearAllMarkers() {
+  if (!map) return;
+  Object.values(markers).forEach(m => { try { map.removeLayer(m); } catch {} });
+  markers = {};
+}
+
+function nukeNonBaseLayers() {
+  if (!map) return;
+  map.eachLayer(layer => {
+    // quitá todo menos el tile layer base
+    if (!(layer instanceof L.TileLayer)) {
+      try { map.removeLayer(layer); } catch {}
+    }
+  });
+  // limpiar ruta y marcadores auxiliares
+  if (currentPolyline) { try { map.removeLayer(currentPolyline); } catch {} ; currentPolyline = null; }
+  routeMarkers.forEach(r => { try { map.removeLayer(r); } catch {} });
+  routeMarkers = [];
+}
+
+function resetSessionState() {
+  // estado de sesión/contadores
+  lastInfo   = {};
+  transitIds = [];
+  detenidoIds = [];
+  sinRepIds  = [];
+  setUnitsCount(0);
+}
+
 
 function downloadReportPDF() {
   const { jsPDF } = window.jspdf;
@@ -287,20 +325,16 @@ function showMapPane() {
 
 // =================== mapa ===================
 function initMap() {
-  map = L.map('map', { 
-    zoomControl: false // Desactivar el control de zoom por defecto
-  }).setView([-26.8, -65.2], 5);
-  
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  map = L.map('map', { zoomControl: false }).setView([-26.8, -65.2], 5);
+
+  baseTileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19,
     attribution: '&copy; OpenStreetMap contributors'
   }).addTo(map);
-  
-  // Agregar control de zoom en la posición inferior derecha
-  L.control.zoom({
-    position: 'bottomright'
-  }).addTo(map);
+
+  L.control.zoom({ position: 'bottomright' }).addTo(map);
 }
+
 // --- Batería: parser y formateo ---
 function parseBattery(raw) {
   if (raw == null) return null;
@@ -319,7 +353,14 @@ function fmtBattery(v) {
 }
 
 function ensureMarker(deviceId, lat, lon, ev) {
-  let iconUrl = (ev === 'stale') ? 'assets/car_gray_warning_triangle.svg' : carIconByEvent(ev);
+  const type = getDeviceType(deviceId);
+
+  let iconUrl;
+  if (ev === 'stale') {
+    iconUrl = `assets/${String(type).toLowerCase()}_sindatos.svg`;
+  } else {
+    iconUrl = iconByTypeAndEvent(type, ev);
+  }
 
   const icon = L.icon({
     iconUrl,
@@ -331,12 +372,8 @@ function ensureMarker(deviceId, lat, lon, ev) {
     const m = markers[deviceId];
     m.setLatLng([lat, lon]).setIcon(icon);
 
-    // Si estaba oculto, NO lo re-agregamos. Si no, aseguramos que esté en el mapa.
-    if (!fleetMarkersHidden && !map.hasLayer(m)) {
-      m.addTo(map);
-    }
+    if (!fleetMarkersHidden && !map.hasLayer(m)) m.addTo(map);
 
-    // tooltip con el displayName actual
     const label = getDisplayName(deviceId);
     m.unbindTooltip();
     m.bindTooltip(label, {
@@ -347,7 +384,6 @@ function ensureMarker(deviceId, lat, lon, ev) {
     });
 
   } else {
-    // Crear sin agregar al mapa si la flota está oculta
     const m = L.marker([lat, lon], { icon });
     const label = getDisplayName(deviceId);
     m.bindTooltip(label, {
@@ -358,12 +394,11 @@ function ensureMarker(deviceId, lat, lon, ev) {
     });
     m.on('click', () => onMarkerClick(deviceId));
 
-    if (!fleetMarkersHidden) {
-      m.addTo(map);
-    }
+    if (!fleetMarkersHidden) m.addTo(map);
     markers[deviceId] = m;
   }
 }
+
 
 
 
@@ -389,6 +424,8 @@ async function onMarkerClick(deviceId) {
   } catch (e) {
     console.error('onMarkerClick', e);
     showToast('No se pudo leer el último reporte');
+    window.dispatchEvent(new CustomEvent('app:device-selected', { detail: { id: deviceId } }));
+
   }
 }
 
@@ -926,28 +963,26 @@ async function onLogin() {
   const password = el('password').value.trim();
   loginPassword = password; 
   if (!username || !password) { showToast('Usuario y contraseña requeridos'); return; }
-// Después de showStatus();
-if (window.matchMedia('(max-width: 1024px)').matches) {
-  setSidebarCollapsed(true);   // ← arranca minimizado en móvil/tablet
-}
+
+  if (window.matchMedia('(max-width: 1024px)').matches) setSidebarCollapsed(true);
 
   try {
     const res = await apiLogin({ username, password });
-    console.log('user ->', res.user);
     token = res.token; user = res.user;
     deviceMeta = (user?.data?.devices_meta) || {};
     devices = (user?.data?.devices || []).map(String);
 
     showMapPane();
     if (!map) initMap();
-    // antes: initCSVModule();
-initCSVModule({
+
+    // Habilitar "Cargar rutas" y "Limpiar Ruta CSV"
+  initCSVModule({
   onRouteLoaded: (points) => {
-    // CSV => quiero ver solo la ruta
+    // Mostrar solo la ruta del CSV
     if (typeof hideFleetMarkers === 'function') hideFleetMarkers();
     currentDevice = 'CSV_IMPORT';
     drawRoute(points);
-    if (currentPolyline) map.fitBounds(currentPolyline.getBounds(), { padding: [24,24] });
+    if (currentPolyline) map.fitBounds(currentPolyline.getBounds(), { padding: [24, 24] });
     showDetails();
     showToast(`Ruta CSV visualizada con ${points.length} puntos`);
   },
@@ -960,7 +995,12 @@ initCSVModule({
   }
 });
 
-    // barra izquierda
+    // 🔥 LIMPIEZA COMPLETA ANTES DE MOSTRAR LOS NUEVOS
+    nukeNonBaseLayers();
+    clearAllMarkers();
+    clearRoute();
+    resetSessionState();
+
     el('spUser').textContent = user?.username || '-';
     showStatus();
 
@@ -976,19 +1016,24 @@ initCSVModule({
     else showToast('Login falló');
   }
   window.dispatchEvent(new CustomEvent('app:logged-in', { detail: { user } }));
-
 }
 
 
 function onLogout() {
-  token = null; user = null; devices = []; markers = {};
+  // limpiar capas/markers del mapa
+  nukeNonBaseLayers();
+  clearAllMarkers();
+  clearRoute();
+  resetSessionState();
+
+  token = null; user = null; devices = [];
   deviceMeta = {};
   showAuthPane();
   document.getElementById('statusPanel').classList.add('hidden');
   showToast('Sesión cerrada');
   window.dispatchEvent(new Event('app:logged-out'));
-
 }
+
 
 
 

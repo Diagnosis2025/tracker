@@ -14,10 +14,14 @@ export function initCSVModule({ onRouteLoaded, onClearRequested } = {}) {
   onClearRequestedCb= typeof onClearRequested=== 'function' ? onClearRequested: null;
 
   // Botón "Cargar ruta desde archivo .csv" (id=menuLoadCSV)
-  const menuLoadCSV = document.getElementById('menuLoadCSV');
-  if (menuLoadCSV) {
-    menuLoadCSV.addEventListener('click', handleCSVLoad);
-  }
+const menuLoadCSV = document.getElementById('menuLoadCSV');
+if (menuLoadCSV) {
+  menuLoadCSV.addEventListener('click', (e) => {
+    e.preventDefault();            // ← evita que navegue a "#"
+    handleCSVLoad();
+  });
+}
+
 
   // Botón "Limpiar Ruta CSV" (id=menuClearCSV). Si no existe, lo creo.
   let menuClearCSV = document.getElementById('menuClearCSV');

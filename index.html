@@ -191,7 +191,7 @@
       <div id="menuContent" class="dropdown-content hidden">
         <a href="#" id="menuLoadCSV" class="menu-item">
           <span class="menu-icon">📁</span>
-          <span>Cargar rutas desde archivo .csv</span>
+          <span>Cargar rutas</span>
         </a>
         <a href="#" id="menuEdit" class="menu-item hidden">
           <span class="menu-icon">✏️</span>
@@ -240,53 +240,52 @@
       </button>
       <div id="refsContent" class="refs-dropdown hidden" role="menu" aria-label="Referencias de iconos">
         <div class="refs-header">Referencias de iconos</div>
-       <div class="refs-item">
-      <img src="assets/car_moving_green_play.svg" alt="Vehículo en tránsito" />
-      <div class="refs-text">
-        <div class="refs-title">Vehículo en tránsito</div>
-        <div class="refs-path">En movimiento</div>
-      </div>
-    </div>
 
-    <div class="refs-item">
-      <img src="assets/car_stopped_green_stop.svg" alt="Vehículo detenido" />
-      <div class="refs-text">
-        <div class="refs-title">Vehículo detenido</div>
-        <div class="refs-path">Estacionado con motor en marcha</div>
-      </div>
-    </div>
 
-    <div class="refs-item">
-      <img src="assets/car_yellow.svg" alt="Vehículo apagado" />
-      <div class="refs-text">
-        <div class="refs-title">Vehículo apagado</div>
-        <div class="refs-path">Estacionado con motor apagado</div>
-      </div>
-    </div>
+<div class="refs-item">
+  <img data-icon="transito" src="assets/auto_transito.svg" alt="Vehículo en tránsito" />
+  <div class="refs-text">
+    <div class="refs-title">Vehículo en tránsito</div>
+    <div class="refs-path">En movimiento</div>
+  </div>
+</div>
 
-    <div class="refs-item">
-      <img src="assets/car_gray_warning_triangle.svg" alt="Vehículo sin reportar por 5 hs" />
-      <div class="refs-text">
-        <div class="refs-title">Vehículo sin reportar por 5 hs</div>
-        <div class="refs-path">Gps sin reporte</div>
-      </div>
-    </div>
-    
-    <div class="refs-item">
-      <img src="assets/icon_descargando_arrow.svg" alt="Descargando" />
-      <div class="refs-text">
-        <div class="refs-title">Descargando datos</div>
-        <div class="refs-path">Descargando datos anteriores</div>
-      </div>
-    </div>
-    
-    <div class="refs-item">
-      <img src="assets/car_red_panic_sos.svg" alt="Vehículo en Pánico" />
-      <div class="refs-text">
-        <div class="refs-title">Vehículo en Pánico</div>
-        <div class="refs-path">Necesita asistencia inmediata</div>
-      </div>
-    </div>
+<div class="refs-item">
+  <img data-icon="detenido" src="assets/auto_detenido.svg" alt="Vehículo detenido" />
+  <div class="refs-text">
+    <div class="refs-title">Vehículo detenido</div>
+    <div class="refs-path">Estacionado con motor en marcha</div>
+  </div>
+</div>
+
+<div class="refs-item">
+  <img data-icon="apagado" src="assets/auto_apagado.svg" alt="Vehículo apagado" />
+  <div class="refs-text">
+    <div class="refs-title">Vehículo apagado</div>
+    <div class="refs-path">Estacionado con motor apagado</div>
+  </div>
+</div>
+
+<div class="refs-item">
+  <img data-icon="sindatos" src="assets/auto_sindatos.svg" alt="Vehículo sin reportar por 5 hs" />
+  <div class="refs-text">
+    <div class="refs-title">Vehículo sin reportar por 5 hs</div>
+    <div class="refs-path">Gps sin reporte</div>
+  </div>
+</div>
+
+<div class="refs-item">
+  <img data-icon="panico" src="assets/auto_panico.svg" alt="Vehículo en Pánico" />
+  <div class="refs-text">
+    <div class="refs-title">Vehículo en Pánico</div>
+    <div class="refs-path">Necesita asistencia inmediata</div>
+  </div>
+</div>
+
+
+
+
+
       </div>
     </div>
   </div>
@@ -508,6 +507,46 @@
   <script type="module" src="./app.js"></script>
   <script type="module" src="./editor.js"></script>
   <script type="module" src="./load-csv.js"></script>
+
+<script type="module">
+  function normalizeType(t) {
+    const s = String(t || '').toLowerCase();
+    if (s.startsWith('mot')) return 'moto';
+    if (s.startsWith('traf')) return 'trafic';
+    if (s.startsWith('cam')) return 'camion';
+    return 'auto';
+  }
+
+  function setRefIcons(type) {
+    const T = normalizeType(type);
+    const map = {
+      transito: `assets/${T}_transito.svg`,
+      detenido: `assets/${T}_detenido.svg`,
+      apagado:  `assets/${T}_apagado.svg`,
+      sindatos: `assets/${T}_sindatos.svg`,
+      panico:   `assets/${T}_panico.svg`,
+    };
+    for (const [key, src] of Object.entries(map)) {
+      const img = document.querySelector(`img[data-icon="${key}"]`);
+      if (img) img.src = src;
+    }
+  }
+
+  // Al iniciar sesión: usa el tipo global del usuario (user.data.tipo)
+  window.addEventListener('app:logged-in', () => {
+    const type = window.App?.state?.user?.data?.tipo || 'auto';
+    setRefIcons(type);
+  });
+
+  // Opcional: cuando elegís un dispositivo, cambia según el tipo del device
+  window.addEventListener('app:device-selected', (ev) => {
+    const id = ev?.detail?.id;
+    const meta = window.App?.getDeviceMeta?.(id) || {};
+    const type = meta.type || meta.tipo || window.App?.state?.user?.data?.tipo || 'auto';
+    setRefIcons(type);
+  });
+</script>
+
 
   <!-- LEFT STATUS SIDEBAR (FIJA / OCULTA EN LOGIN) -->
   <aside id="statusPanel" class="left-sidebar hidden">
