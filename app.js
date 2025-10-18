@@ -1,10 +1,21 @@
-import { API_BASE, showToast, parseDevicesInput, carIconByEvent, eventLabel, fmtDate, fmtTime, downloadCsv, reverseGeocode, sleep, haversineKm, iconByTypeAndEvent } from './utils.js';
-import { apiLogin, apiLastReading, apiReadingsRange } from './api.js';
+import {
+  API_BASE, showToast, parseDevicesInput, carIconByEvent, eventLabel,
+  fmtDate, fmtTime, downloadCsv, reverseGeocode, sleep, haversineKm,
+  iconByTypeAndEvent, normalizeType
+} from './utils.js';
+import {
+  apiLogin,
+  apiListAvailable,
+  apiLastReading,
+  apiReadingsRange,
+  apiLastReadingsBulk,
+  setAuthToken
+} from './api.js';
 import { initCSVModule } from './load-csv.js';
 
 let deviceMeta = {}; // id -> meta del user (name, plate, brand, model, color, colorHex, ...)
 let loginPassword = null;
-let map, user, token;
+let map, user, token, userMetadata;
 let markers = {};
 let devices = [];
 let currentPolyline = null;
@@ -18,20 +29,18 @@ let transitIds = [];
 let detenidoIds = [];
 let sinRepIds = [];
 let fleetMarkersHidden = false;
-let baseTileLayer = null; // ← referencia al tile base
+let baseTileLayer = null;
 
 const normDeg = (d) => ((d % 360) + 360) % 360;
-// Offset si tu SVG apunta al Este (→). Si tu SVG apunta al Norte (↑), dejalo en 0.
 const ARROW_OFFSET_DEG = -90;
 const el = (id) => document.getElementById(id);
-// --- Iconos de inicio/fin de ruta ---
+
 const flagStartIcon = L.icon({
   iconUrl: 'assets/flag-start.svg',
   iconSize: [28, 28],
-  iconAnchor: [14, 27],    // ancla abajo al centro
+  iconAnchor: [14, 27],
   popupAnchor: [0, -22]
 });
-
 const flagEndIcon = L.icon({
   iconUrl: 'assets/flag-end.svg',
   iconSize: [28, 28],
@@ -39,14 +48,12 @@ const flagEndIcon = L.icon({
   popupAnchor: [0, -22]
 });
 
-// =================== helpers UI (exclusividad de paneles) ===================
+// =================== helpers UI ===================
 function getDeviceType(id) {
   const m = getDeviceMeta(id) || {};
-  // admite 'type' o 'tipo' en el meta por dispositivo
-  return (m.type || m.tipo || user?.data?.tipo || 'auto');
+  // admite 'type' o 'tipo' por dispositivo, o 'tipo' a nivel metadata de usuario
+  return normalizeType(m.type || m.tipo || userMetadata?.tipo || 'auto');
 }
-
-
 
 function clearAllMarkers() {
   if (!map) return;
@@ -57,19 +64,16 @@ function clearAllMarkers() {
 function nukeNonBaseLayers() {
   if (!map) return;
   map.eachLayer(layer => {
-    // quitá todo menos el tile layer base
     if (!(layer instanceof L.TileLayer)) {
       try { map.removeLayer(layer); } catch {}
     }
   });
-  // limpiar ruta y marcadores auxiliares
   if (currentPolyline) { try { map.removeLayer(currentPolyline); } catch {} ; currentPolyline = null; }
   routeMarkers.forEach(r => { try { map.removeLayer(r); } catch {} });
   routeMarkers = [];
 }
 
 function resetSessionState() {
-  // estado de sesión/contadores
   lastInfo   = {};
   transitIds = [];
   detenidoIds = [];
@@ -77,55 +81,44 @@ function resetSessionState() {
   setUnitsCount(0);
 }
 
-
 function downloadReportPDF() {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
-  
-  // Obtener datos del informe
+
   const vehicleName = el('reportVehicleName').textContent;
   const period = el('reportPeriod').textContent;
   const km = el('reportKm').textContent;
   const points = el('reportPoints').textContent;
-  
-  // Configurar fuente y colores
+
   doc.setFont("helvetica");
-  
-  // Título principal
   doc.setFontSize(18);
-  doc.setTextColor(37, 99, 235); // Azul
+  doc.setTextColor(37, 99, 235);
   doc.text("Informe de Kilómetros Recorridos", 105, 20, { align: "center" });
-  
-  // Subtítulo
+
   doc.setFontSize(12);
   doc.setTextColor(100, 100, 100);
   doc.text("Generado desde la aplicación Diagnosis Tracker", 105, 28, { align: "center" });
-  
-  // Línea separadora
+
   doc.setDrawColor(200, 200, 200);
   doc.line(20, 35, 190, 35);
-  
-  // Contenido del informe
+
   doc.setFontSize(11);
   doc.setTextColor(0, 0, 0);
-  
+
   let y = 50;
-  
-  // Vehículo
+
   doc.setFont("helvetica", "bold");
   doc.text("Vehículo:", 20, y);
   doc.setFont("helvetica", "normal");
   doc.text(vehicleName, 60, y);
   y += 10;
-  
-  // Período
+
   doc.setFont("helvetica", "bold");
   doc.text("Período:", 20, y);
   doc.setFont("helvetica", "normal");
   doc.text(period, 60, y);
   y += 15;
-  
-  // Resultado principal (destacado)
+
   doc.setFillColor(240, 249, 255);
   doc.roundedRect(15, y - 5, 180, 20, 3, 3, 'F');
   doc.setFontSize(14);
@@ -135,36 +128,30 @@ function downloadReportPDF() {
   doc.setFontSize(16);
   doc.text(km, 150, y + 5, { align: "right" });
   y += 25;
-  
-  // Puntos procesados
+
   doc.setFontSize(10);
   doc.setTextColor(100, 100, 100);
   doc.setFont("helvetica", "normal");
   doc.text(`Datos procesados: ${points} puntos GPS`, 20, y);
   y += 15;
-  
-  // Resumen en texto
+
   doc.setFontSize(11);
   doc.setTextColor(0, 0, 0);
   const kmValue = el('reportKm').textContent.replace(' km', '');
   const deviceId = el('reportDeviceSelect').value;
   const displayName = getDisplayName(deviceId);
   const [fromPeriod, toPeriod] = period.split(' → ');
-  
   const summaryText = `El vehículo "${displayName}" recorrió ${kmValue} kilómetros desde ${fromPeriod} hasta ${toPeriod}.`;
-  
   const lines = doc.splitTextToSize(summaryText, 170);
   doc.text(lines, 20, y);
   y += lines.length * 7 + 10;
-  
-  // Nota técnica
+
   doc.setFontSize(9);
   doc.setTextColor(120, 120, 120);
   doc.text("Nota: El cálculo se realizó en base a coordenadas GPS registradas por el dispositivo.", 20, y);
   y += 5;
   doc.text("Se filtraron saltos superiores a 5 km para evitar lecturas erróneas.", 20, y);
-  
-  // Footer
+
   doc.setDrawColor(200, 200, 200);
   doc.line(20, 270, 190, 270);
   doc.setFontSize(8);
@@ -173,14 +160,12 @@ function downloadReportPDF() {
   const dateStr = `${date.getDate()}/${date.getMonth()+1}/${date.getFullYear()} ${date.getHours()}:${String(date.getMinutes()).padStart(2,'0')}`;
   doc.text(`Diagnosis S.A. - Generado el ${dateStr}`, 105, 280, { align: "center" });
   doc.text("argentinadiagnosis@gmail.com", 105, 285, { align: "center" });
-  
-  // Descargar
+
   const filename = `Informe_${displayName.replace(/\s+/g, '_')}_${fmtDate(new Date()).replace(/-/g, '')}.pdf`;
   doc.save(filename);
-  
+
   showToast('Informe PDF descargado');
 }
-
 
 function closePanelsExcept(exceptId = null) {
   ['searchPanel', 'fleetPanel', 'detailsPanel'].forEach(id => {
@@ -224,18 +209,16 @@ function setText(id, val) {
   if (n) n.textContent = (val == null || val === '') ? '-' : String(val);
 }
 
-// atajos
 function showSearch()   { openPanel('searchPanel'); }
 function hideSearch()   { el('searchPanel').classList.add('hidden'); }
 function showFleet()    { openPanel('fleetPanel'); }
 function hideFleet()    { el('fleetPanel').classList.add('hidden'); }
-function showDetails()  {   openPanel('detailsPanel');  el('detailsPanel').classList.remove('minimized'); }
+function showDetails()  { openPanel('detailsPanel');  el('detailsPanel').classList.remove('minimized'); }
 function hideDetails()  { el('detailsPanel').classList.add('hidden'); }
 function showStatus()   { openPanel('statusPanel'); }
 function hideStatus()   { el('statusPanel').classList.add('hidden'); }
-// ===== Flechas de dirección en la ruta =====
 
-// Calcula rumbo A->B en grados
+// ===== Flechas de dirección =====
 function bearingDeg([lat1, lon1], [lat2, lon2]) {
   const toRad = (x) => x * Math.PI / 180;
   const toDeg = (x) => x * 180 / Math.PI;
@@ -246,7 +229,6 @@ function bearingDeg([lat1, lon1], [lat2, lon2]) {
   return (toDeg(Math.atan2(y, x)) + 360) % 360;
 }
 
-// === Bridge mínimo para editor.js ===
 window.App = {
   get state() { return { user, token, devices, deviceMeta, markers, currentDevice, loginPassword }; },
   setDeviceMeta(newMeta) { deviceMeta = newMeta; },
@@ -255,13 +237,9 @@ window.App = {
   renderFleet
 };
 
-
-
-// Usa el SVG de assets y lo rota con CSS
 function makeArrowIcon(angleDeg) {
   const size = 20;
-  const rot = normDeg(angleDeg + ARROW_OFFSET_DEG); // <-- normalizado
-
+  const rot = normDeg(angleDeg + ARROW_OFFSET_DEG);
   return L.divIcon({
     className: 'arrow-icon',
     html: `<img src="assets/arrow-current.svg" alt="→"
@@ -274,64 +252,51 @@ function makeArrowIcon(angleDeg) {
   });
 }
 
-
-// Coloca flechas en puntos medios de los tramos (con límite para no saturar)
 function addRouteArrows(latlngs) {
   if (!latlngs || latlngs.length < 2) return;
-
-  const maxArrows = 50; // subí/bajá si querés más/menos flechas
+  const maxArrows = 50;
   const step = Math.max(1, Math.ceil(latlngs.length / maxArrows));
-
   for (let i = 0; i < latlngs.length - 1; i += step) {
     const a = latlngs[i];
     const b = latlngs[i + 1];
     if (!a || !b) continue;
-
     const mid = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
     const angle = bearingDeg(a, b);
-
     const arrow = L.marker(mid, {
       icon: makeArrowIcon(angle),
       interactive: false,
       keyboard: false,
       zIndexOffset: 500
     }).addTo(map);
-
-    routeMarkers.push(arrow); // así clearRoute() las borra
+    routeMarkers.push(arrow);
   }
 }
 
 function setAuthDebug(obj) {
   const dbg = document.getElementById('authDebug');
-  if (!dbg) return; // si ya no existe el cuadro, no hacemos nada
+  if (!dbg) return;
   dbg.textContent = typeof obj === 'string' ? obj : JSON.stringify(obj, null, 2);
 }
-
 function setUnitsCount(n) { el('unitsCount').textContent = n; }
 
 function showAuthPane() {
   el('authPane').classList.remove('hidden');
   el('mapPane').classList.add('hidden');
-  // Ocultar la barra superior
   document.querySelector('.topbar').classList.add('hidden');
 }
-
 function showMapPane() {
   el('authPane').classList.add('hidden');
   el('mapPane').classList.remove('hidden');
-  // Mostrar la barra superior después del login
   document.querySelector('.topbar').classList.remove('hidden');
 }
 
 // =================== mapa ===================
 function initMap() {
   map = L.map('map', { zoomControl: false }).setView([-26.8, -65.2], 5);
-
   baseTileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19,
     attribution: '&copy; OpenStreetMap contributors'
   }).addTo(map);
-
   L.control.zoom({ position: 'bottomright' }).addTo(map);
 }
 
@@ -340,7 +305,6 @@ function parseBattery(raw) {
   if (raw == null) return null;
   if (typeof raw === 'number') return isFinite(raw) ? raw : null;
   if (typeof raw === 'string') {
-    // acepta "12,22", " 12.2 ", incluso "12,22V"
     const s = raw.trim().replace(',', '.').replace(/[^\d.\-+eE]/g, '');
     const n = parseFloat(s);
     return Number.isFinite(n) ? n : null;
@@ -356,11 +320,8 @@ function ensureMarker(deviceId, lat, lon, ev) {
   const type = getDeviceType(deviceId);
 
   let iconUrl;
-  if (ev === 'stale') {
-    iconUrl = `assets/${String(type).toLowerCase()}_sindatos.svg`;
-  } else {
-    iconUrl = iconByTypeAndEvent(type, ev);
-  }
+  if (ev === 'stale') iconUrl = `assets/${String(type).toLowerCase()}_sindatos.svg`;
+  else iconUrl = iconByTypeAndEvent(type, ev);
 
   const icon = L.icon({
     iconUrl,
@@ -371,7 +332,6 @@ function ensureMarker(deviceId, lat, lon, ev) {
   if (markers[deviceId]) {
     const m = markers[deviceId];
     m.setLatLng([lat, lon]).setIcon(icon);
-
     if (!fleetMarkersHidden && !map.hasLayer(m)) m.addTo(map);
 
     const label = getDisplayName(deviceId);
@@ -382,7 +342,6 @@ function ensureMarker(deviceId, lat, lon, ev) {
       offset: [0, 10],
       className: 'marker-label'
     });
-
   } else {
     const m = L.marker([lat, lon], { icon });
     const label = getDisplayName(deviceId);
@@ -393,14 +352,10 @@ function ensureMarker(deviceId, lat, lon, ev) {
       className: 'marker-label'
     });
     m.on('click', () => onMarkerClick(deviceId));
-
     if (!fleetMarkersHidden) m.addTo(map);
     markers[deviceId] = m;
   }
 }
-
-
-
 
 // =================== marker click / detalles ===================
 async function onMarkerClick(deviceId) {
@@ -408,45 +363,41 @@ async function onMarkerClick(deviceId) {
   try {
     const js = await apiLastReading(deviceId);
     const d = js?.data || {};
-    const t = new Date(js?.timestamp || js?.ts || Date.now());
+    const t = new Date(js?.timestamp || Date.now());
     fillDetailsPanel({
       deviceId,
       ts: t,
-      ev: d.ev ?? d.e ?? 0,
+      ev: d.ev ?? 0,
       v: d.v ?? '-',
       sg: d.sg ?? '-',
-      lat: Number(d.la ?? d.lat ?? 0),
-      lon: Number(d.lo ?? d.lon ?? 0),
-      bt: parseBattery(d.Bt ?? d.bt ?? d.battery),  // <<< batería normalizada
-
+      lat: Number(d.la ?? 0),
+      lon: Number(d.lo ?? 0),
+      bt: parseBattery(d.Bt ?? d.bt ?? d.battery),
     });
-    showDetails(); // abre SOLO detalles, cierra el resto
+    showDetails();
   } catch (e) {
     console.error('onMarkerClick', e);
     showToast('No se pudo leer el último reporte');
     window.dispatchEvent(new CustomEvent('app:device-selected', { detail: { id: deviceId } }));
-
   }
 }
 
 function fillDetailsPanel({ deviceId, ts, ev, v, sg, lat, lon, bt }) {
-const display = getDisplayName(deviceId);
-el('dpDevice').textContent = `${display} (${deviceId})`;
+  const display = getDisplayName(deviceId);
+  el('dpDevice').textContent = `${display} (${deviceId})`;
 
-// meta
-const meta = getDeviceMeta(deviceId) || {};
-setText('dpPlate', meta.plate);
-setText('dpBrand', meta.brand);
-setText('dpModel', meta.model);
-setText('dpColor', meta.color);
+  const meta = getDeviceMeta(deviceId) || {};
+  setText('dpPlate', meta.plate);
+  setText('dpBrand', meta.brand);
+  setText('dpModel', meta.model);
+  setText('dpColor', meta.color);
 
-// opcional: si querés colorear “Color” con el hex
-if (meta.colorHex) {
-  const c = el('dpColor');
-  if (c) {
-    c.innerHTML = `<span style="display:inline-block;width:12px;height:12px;border-radius:50%;vertical-align:middle;margin-right:6px;border:1px solid #ccc;background:${meta.colorHex}"></span>${meta.color || meta.colorHex}`;
+  if (meta.colorHex) {
+    const c = el('dpColor');
+    if (c) {
+      c.innerHTML = `<span style="display:inline-block;width:12px;height:12px;border-radius:50%;vertical-align:middle;margin-right:6px;border:1px solid #ccc;background:${meta.colorHex}"></span>${meta.color || meta.colorHex}`;
+    }
   }
-}
 
   el('dpDate').textContent   = fmtDate(ts);
   el('dpTime').textContent   = fmtTime(ts);
@@ -457,7 +408,6 @@ if (meta.colorHex) {
   const batEl = el('dpBattery');
   if (batEl) batEl.textContent = fmtBattery(bt);
 
-  // 👉 Dirección
   const addrEl = el('dpAddress');
   if (addrEl) {
     addrEl.textContent = 'Buscando...';
@@ -470,7 +420,6 @@ if (meta.colorHex) {
 }
 
 async function enrichRouteWithAddresses(points) {
-  // consulta secuencial con leve pausa: amable con el servicio
   for (let i = 0; i < points.length; i++) {
     const p = points[i];
     if (!p.addr && p.lat && p.lon) {
@@ -479,24 +428,20 @@ async function enrichRouteWithAddresses(points) {
       } catch {
         p.addr = '';
       }
-      // cada 5 puntos, dormimos un cachito
       if (i % 5 === 0) await sleep(300);
     }
   }
 }
 
 // =================== carga de últimos puntos ===================
-// =================== carga de últimos puntos ===================
 async function loadLastPoints(ids) {
   if (!ids || !ids.length) { setUnitsCount(0); return; }
 
-  // reset
   lastInfo   = {};
   transitIds = [];
   detenidoIds = [];
   sinRepIds  = [];
 
-  // 👉 Sets para evitar duplicados
   const transitSet  = new Set();
   const detenidoSet = new Set();
   const sinRepSet   = new Set();
@@ -504,9 +449,9 @@ async function loadLastPoints(ids) {
   const now = Date.now();
   const isStale = (t) => (now - t) >= 5 * 3600 * 1000; // ≥5h
 
-  let bounds = [];
+  const bounds = [];
   for (const idRaw of ids) {
-    const id = String(idRaw).trim();   // 👉 normalizá el ID
+    const id = String(idRaw).trim();
     try {
       const js = await apiLastReading(id);
       const d = js?.data || {};
@@ -518,22 +463,15 @@ async function loadLastPoints(ids) {
       const stale = isStale(ts.getTime());
 
       if (isFinite(lat) && isFinite(lon) && lat !== 0 && lon !== 0) {
-        const nlat = lat > 0 ? -Math.abs(lat) : lat;
-        const nlon = lon > 0 ? -Math.abs(lon) : lon;
-
-        if (stale) {
-          ensureMarker(id, nlat, nlon, 'stale');
-        } else {
-          ensureMarker(id, nlat, nlon, ev);
-        }
-        bounds.push([nlat, nlon]);
+        if (stale) ensureMarker(id, lat, lon, 'stale');
+        else       ensureMarker(id, lat, lon, ev);
+        bounds.push([lat, lon]);
       }
 
-      // clasificar (prioridad: stale)
       lastInfo[id] = { ev, ts, lat, lon, stale };
 
       if (stale) {
-        sinRepSet.add(id);            // ✅ sin duplicados
+        sinRepSet.add(id);
       } else if (ev === 10 || ev === 31) {
         transitSet.add(id);
       } else if (ev === 11 || ev === 30) {
@@ -544,15 +482,14 @@ async function loadLastPoints(ids) {
     }
   }
 
-  // Pasá a arrays para el resto del código
   transitIds  = Array.from(transitSet);
   detenidoIds = Array.from(detenidoSet);
   sinRepIds   = Array.from(sinRepSet);
 
   setUnitsCount(Object.keys(markers).length);
   updateStatusPanel({
-    username: user?.username || '-',
-    total: Array.from(new Set(ids.map(x => String(x).trim()))).length, // total sin duplicados
+    username: user?.alias || '-',
+    total: Array.from(new Set(ids.map(x => String(x).trim()))).length,
     transitIds, detenidoIds, sinRepIds
   });
 
@@ -561,14 +498,12 @@ async function loadLastPoints(ids) {
   }
 }
 
-
 // =================== INFORMES ===================
 function showReports() {
   openPanel('reportsPanel');
   populateReportDevices();
   setupReportDateInputs();
 }
-
 function hideReports() {
   el('reportsPanel').classList.add('hidden');
   el('reportResult').style.display = 'none';
@@ -577,7 +512,6 @@ function hideReports() {
 function populateReportDevices() {
   const sel = el('reportDeviceSelect');
   if (!sel) return;
-  
   sel.innerHTML = '<option value="">-- Elegir --</option>' +
     devices.map(id => {
       const name = getDisplayName(id);
@@ -590,7 +524,6 @@ function setupReportDateInputs() {
   const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
   const pad = (n) => n.toString().padStart(2, '0');
   const fmt = (d) => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-  
   const fromInput = el('reportFrom');
   const toInput = el('reportTo');
   if (fromInput && toInput) {
@@ -603,55 +536,37 @@ async function generateKmReport() {
   const deviceId = el('reportDeviceSelect').value;
   const fromStr = el('reportFrom').value;
   const toStr = el('reportTo').value;
-  
-  if (!deviceId) {
-    showToast('Seleccione un vehículo');
-    return;
-  }
-  if (!fromStr || !toStr) {
-    showToast('Complete ambas fechas');
-    return;
-  }
-  
+
+  if (!deviceId) { showToast('Seleccione un vehículo'); return; }
+  if (!fromStr || !toStr) { showToast('Complete ambas fechas'); return; }
+
   const from = new Date(fromStr + ':00');
   const to = new Date(toStr + ':00');
-  
-  if (isNaN(from.getTime()) || isNaN(to.getTime())) {
-    showToast('Fechas inválidas');
-    return;
-  }
-  if (to < from) {
-    showToast('La fecha "Hasta" debe ser posterior a "Desde"');
-    return;
-  }
-  
+
+  if (isNaN(from.getTime()) || isNaN(to.getTime())) { showToast('Fechas inválidas'); return; }
+  if (to < from) { showToast('La fecha "Hasta" debe ser posterior a "Desde"'); return; }
+
   el('reportMsg').textContent = 'Calculando...';
   el('reportResult').style.display = 'none';
-  
+
   try {
     const points = await apiReadingsRange(deviceId, from, to);
-    
+
     if (!points || points.length === 0) {
       el('reportMsg').textContent = 'No hay datos en el período seleccionado';
       return;
     }
-    
-    // Calcular distancia total
+
     let totalKm = 0;
     for (let i = 1; i < points.length; i++) {
       const prev = points[i - 1];
       const curr = points[i];
-      
       if (prev.lat && prev.lon && curr.lat && curr.lon) {
         const dist = haversineKm(prev.lat, prev.lon, curr.lat, curr.lon);
-        // Filtrar saltos irreales (más de 5 km entre puntos consecutivos)
-        if (dist < 5) {
-          totalKm += dist;
-        }
+        if (dist < 5) totalKm += dist;
       }
     }
-    
-    // Mostrar resultado
+
     const vehicleName = getDisplayName(deviceId);
     el('reportVehicleName').textContent = `${vehicleName} (${deviceId})`;
     el('reportPeriod').textContent = `${fmtDate(from)} ${fmtTime(from)} → ${fmtDate(to)} ${fmtTime(to)}`;
@@ -659,9 +574,8 @@ async function generateKmReport() {
     el('reportPoints').textContent = points.length;
     el('reportResult').style.display = 'block';
     el('reportMsg').textContent = '';
-    
+
     showToast(`Informe generado: ${totalKm.toFixed(2)} km`);
-    
   } catch (e) {
     console.error('Error generando informe:', e);
     el('reportMsg').textContent = 'Error: ' + e.message;
@@ -681,14 +595,10 @@ function updateStatusPanel({ username, total, transitIds, detenidoIds, sinRepIds
   el('spSinRepRow').onclick    = () => focusDevices(sinRepIds);
 }
 
-
 function focusDevices(idList) {
   if (!idList || !idList.length) { showToast('No hay vehículos en ese grupo'); return; }
   hideDetails(); hideSearch(); hideFleet();
   clearRoute();
-  hideDetails(); 
-  hideSearch(); 
-  hideFleet();
   const pts = [];
   idList.forEach(id => {
     const m = markers[id];
@@ -699,26 +609,19 @@ function focusDevices(idList) {
 }
 
 // =================== flota (lista) ===================
-// =================== flota (lista) ===================
 function renderFleet(ids) {
   const ul = el('fleetList');
+  ul.innerHTML = ids.map(id => {
+    const name = getDisplayName(id);
+    return `<li><strong>${name}</strong> <span class="muted">(${id})</span> <button data-id="${id}" class="btn">Ver</button></li>`;
+  }).join('');
 
-  // Construye la lista
-ul.innerHTML = ids.map(id => {
-  const name = getDisplayName(id);
-  return `<li><strong>${name}</strong> <span class="muted">(${id})</span> <button data-id="${id}" class="btn">Ver</button></li>`;
-}).join('');
-
-
-  // Un único handler, no { once:true }, no addEventListener duplicados
   ul.onclick = (ev) => {
     const b = ev.target.closest('button[data-id]');
     if (!b) return;
-
     const id = b.getAttribute('data-id').trim();
     const m  = markers[id];
 
-    // Abrimos detalles siempre (aunque no haya marker)
     onMarkerClick(id);
 
     if (m) {
@@ -733,11 +636,9 @@ function setSidebarCollapsed(collapsed){
   const sp = el('statusPanel');
   sp.classList.toggle('collapsed', collapsed);
   document.body.classList.toggle('sidebar-collapsed', collapsed);
-  // Dale un tiempito al CSS y luego recalculamos el mapa
   setTimeout(() => { if (map) map.invalidateSize(); }, 200);
 }
 
-// botón del panel
 el('btnStatusToggle').addEventListener('click', () => {
   const collapsed = !el('statusPanel').classList.contains('collapsed');
   setSidebarCollapsed(collapsed);
@@ -761,12 +662,10 @@ function drawRoute(points) {
   const latlngs = [];
   for (const p of points) {
     if (!p.lat || !p.lon) continue;
-    const nlat = p.lat > 0 ? -Math.abs(p.lat) : p.lat;
-    const nlon = p.lon > 0 ? -Math.abs(p.lon) : p.lon;
-    latlngs.push([nlat, nlon]);
+    // SIN invertir signos
+    latlngs.push([p.lat, p.lon]);
 
-    // Punto rojo de cada trama
-    const marker = L.circleMarker([nlat, nlon], {
+    const marker = L.circleMarker([p.lat, p.lon], {
       radius: 5,
       color: '#ff0000',
       fillColor: '#ff0000',
@@ -774,79 +673,65 @@ function drawRoute(points) {
       weight: 1
     }).addTo(map);
 
-const dispName = getDisplayName(currentDevice);
-const popupContent = `
-  <div class="route-popup">
-    <strong>Dispositivo:</strong> ${dispName} (${currentDevice})<br>
-    <strong>Fecha:</strong> ${fmtDate(p.ts)}<br>
-    <strong>Hora:</strong> ${fmtTime(p.ts)}<br>
-    <strong>Velocidad:</strong> ${p.v || 0} km/h<br>
-    <strong>Evento:</strong> ${eventLabel(p.ev)}<br>
-    <strong>Señal:</strong> ${p.sg || '-'}<br>
-    <strong>Coordenadas:</strong> ${p.lat.toFixed(6)}, ${p.lon.toFixed(6)}<br>
-    <strong>Batería:</strong> ${fmtBattery(parseBattery(p.Bt ?? p.bt ?? p.battery))}
-  </div>
-`;
-
+    const dispName = getDisplayName(currentDevice);
+    const popupContent = `
+      <div class="route-popup">
+        <strong>Dispositivo:</strong> ${dispName} (${currentDevice})<br>
+        <strong>Fecha:</strong> ${fmtDate(p.ts)}<br>
+        <strong>Hora:</strong> ${fmtTime(p.ts)}<br>
+        <strong>Velocidad:</strong> ${p.v || 0} km/h<br>
+        <strong>Evento:</strong> ${eventLabel(p.ev)}<br>
+        <strong>Señal:</strong> ${p.sg || '-'}<br>
+        <strong>Coordenadas:</strong> ${p.lat.toFixed(6)}, ${p.lon.toFixed(6)}<br>
+        <strong>Batería:</strong> ${fmtBattery(parseBattery(p.Bt ?? p.bt ?? p.battery))}
+      </div>
+    `;
     marker.bindPopup(popupContent, { closeButton: false });
     marker.on('mouseover', function() { this.openPopup(); });
     marker.on('mouseout',  function() { this.closePopup(); });
     routeMarkers.push(marker);
   }
 
-  // Polyline
   currentPolyline = L.polyline(latlngs, { color:'#2563eb', weight: 4 }).addTo(map);
-addRouteArrows(latlngs);
-  // ====== Banderas INICIO / FIN ======
+  addRouteArrows(latlngs);
+
   if (latlngs.length >= 1) {
-    // Primer punto → flag-start
     const first = latlngs[0];
     const firstData = points[0];
-    const startFlag = L.marker(first, {
-      icon: flagStartIcon,
-      zIndexOffset: 1000
-    })
-    .bindTooltip('Inicio', { direction:'top', offset:[0,-10] })
-    .bindPopup(`
-      <div class="route-popup">
-        <strong>Inicio</strong><br>
-        ${fmtDate(firstData.ts)} ${fmtTime(firstData.ts)}<br>
-        ${firstData.lat.toFixed(6)}, ${firstData.lon.toFixed(6)}
-      </div>
-    `)
-    .addTo(map);
+    const startFlag = L.marker(first, { icon: flagStartIcon, zIndexOffset: 1000 })
+      .bindTooltip('Inicio', { direction:'top', offset:[0,-10] })
+      .bindPopup(`
+        <div class="route-popup">
+          <strong>Inicio</strong><br>
+          ${fmtDate(firstData.ts)} ${fmtTime(firstData.ts)}<br>
+          ${firstData.lat.toFixed(6)}, ${firstData.lon.toFixed(6)}
+        </div>
+      `)
+      .addTo(map);
     routeMarkers.push(startFlag);
   }
 
   if (latlngs.length >= 2) {
-    // Último punto → flag-end
     const last = latlngs[latlngs.length - 1];
     const lastData = points[points.length - 1];
-    const endFlag = L.marker(last, {
-      icon: flagEndIcon,
-      zIndexOffset: 1000
-    })
-    .bindTooltip('Fin', { direction:'top', offset:[0,-10] })
-    .bindPopup(`
-      <div class="route-popup">
-        <strong>Fin</strong><br>
-        ${fmtDate(lastData.ts)} ${fmtTime(lastData.ts)}<br>
-        ${lastData.lat.toFixed(6)}, ${lastData.lon.toFixed(6)}
-      </div>
-    `)
-    .addTo(map);
+    const endFlag = L.marker(last, { icon: flagEndIcon, zIndexOffset: 1000 })
+      .bindTooltip('Fin', { direction:'top', offset:[0,-10] })
+      .bindPopup(`
+        <div class="route-popup">
+          <strong>Fin</strong><br>
+          ${fmtDate(lastData.ts)} ${fmtTime(lastData.ts)}<br>
+          ${lastData.lat.toFixed(6)}, ${lastData.lon.toFixed(6)}
+        </div>
+      `)
+      .addTo(map);
     routeMarkers.push(endFlag);
   }
-  // ====== /Banderas ======
+
   annotateStops(points, latlngs);
   map.fitBounds(currentPolyline.getBounds(), { padding:[24,24] });
   currentRoute = points;
   el('btnDownload').disabled = currentRoute.length === 0;
-  
-
-
 }
-
 
 // =================== datetime inputs ===================
 function setupDateTimeInputs() {
@@ -883,26 +768,8 @@ async function fetchAndDrawRange(deviceId, from, to) {
   }
 }
 
-
 // =================== auth & acciones ===================
-async function onCreateUser() {
-  const username = el('username').value.trim();
-  const password = el('password').value.trim();
-  const devices = parseDevicesInput(el('devices').value);
-  const tipo = el('tipo').value.trim();
-  const nivel = el('nivel').value.trim();
-  if (!username || !password) { showToast('Usuario y contraseña requeridos'); return; }
-  try {
-    const res = await apiCreateUser({ username, password, devices, tipo, nivel });
-    setAuthDebug(res);
-    showToast('Usuario creado');
-  } catch (e) {
-    setAuthDebug(String(e)); showToast('Error al crear usuario');
-  }
-}
 
-
-// Funcionalidad para el menú desplegable
 const btnMenu = document.getElementById('btnMenu');
 const menuContent = document.getElementById('menuContent');
 
@@ -911,21 +778,15 @@ if (btnMenu && menuContent) {
     e.stopPropagation();
     menuContent.classList.toggle('hidden');
   });
-  
-  // Cerrar menú al hacer clic fuera
   document.addEventListener('click', () => {
     menuContent.classList.add('hidden');
   });
-  
-  // Prevenir que el clic en el menú lo cierre
   menuContent.addEventListener('click', (e) => {
     e.stopPropagation();
   });
 }
 
-// Configurar opciones del menú
 document.getElementById('menuExit').addEventListener('click', onLogout);
-// Informes
 document.getElementById('menuReports')?.addEventListener('click', (e) => {
   e.preventDefault();
   showReports();
@@ -935,7 +796,7 @@ el('btnCloseReports')?.addEventListener('click', hideReports);
 el('btnGenerateReport')?.addEventListener('click', generateKmReport);
 el('btnDownloadReport')?.addEventListener('click', downloadReportPDF);
 
-// ===== Referencias (dropdown a la izquierda) =====
+// Referencias (dropdown)
 const btnRefs = document.getElementById('btnRefs');
 const refsContent = document.getElementById('refsContent');
 
@@ -945,71 +806,50 @@ if (btnRefs && refsContent) {
     const open = refsContent.classList.toggle('hidden');
     btnRefs.setAttribute('aria-expanded', String(!open));
   });
-
-  // Evitar que el clic dentro cierre el menú
   refsContent.addEventListener('click', (e) => e.stopPropagation());
-
-  // Cerrar referencias si se hace clic afuera
   document.addEventListener('click', () => {
     refsContent.classList.add('hidden');
     btnRefs.setAttribute('aria-expanded', 'false');
   });
 }
 
-
-
 async function onLogin() {
-  const username = el('username').value.trim();
+  const username = el('username').value.trim(); // alias
   const password = el('password').value.trim();
-  loginPassword = password; 
+  loginPassword = password;
   if (!username || !password) { showToast('Usuario y contraseña requeridos'); return; }
 
   if (window.matchMedia('(max-width: 1024px)').matches) setSidebarCollapsed(true);
 
   try {
+    // Login Valle -> set token
     const res = await apiLogin({ username, password });
-    token = res.token; user = res.user;
-    deviceMeta = (user?.data?.devices_meta) || {};
-    devices = (user?.data?.devices || []).map(String);
+    token = res.token; user = res.user; userMetadata = res.metadata || null;
+    setAuthToken(token);
 
+    // Flota AUTORIZADA según metadata del usuario
+    deviceMeta = userMetadata?.devices_meta || {};
+    devices = (userMetadata?.devices || []).map(String);
+
+    // Mostrar UI
     showMapPane();
     if (!map) initMap();
 
-    // Habilitar "Cargar rutas" y "Limpiar Ruta CSV"
-  initCSVModule({
-  onRouteLoaded: (points) => {
-    // Mostrar solo la ruta del CSV
-    if (typeof hideFleetMarkers === 'function') hideFleetMarkers();
-    currentDevice = 'CSV_IMPORT';
-    drawRoute(points);
-    if (currentPolyline) map.fitBounds(currentPolyline.getBounds(), { padding: [24, 24] });
-    showDetails();
-    showToast(`Ruta CSV visualizada con ${points.length} puntos`);
-  },
-  onClearRequested: () => {
-    clearRoute();
-    currentDevice = null;
-    hideDetails();
-    if (typeof showFleetMarkers === 'function') showFleetMarkers();
-    showToast('Ruta CSV eliminada');
-  }
-});
-
-    // 🔥 LIMPIEZA COMPLETA ANTES DE MOSTRAR LOS NUEVOS
+    // Limpieza
     nukeNonBaseLayers();
     clearAllMarkers();
     clearRoute();
     resetSessionState();
 
-    el('spUser').textContent = user?.username || '-';
+    el('spUser').textContent = user?.alias || user?.name || '-';
     showStatus();
 
-    await loadLastPoints(devices);
+    // Renderizar flota (autorizados) + cargar últimos puntos si hay
     renderFleet(devices);
+    if (devices.length) await loadLastPoints(devices);
 
-    setAuthDebug(res);
-    if (!devices.length) showToast('Login ok, pero no hay devices en data');
-    else showToast(`Login ok: ${devices.length} dispositivos`);
+    setAuthDebug({ login: { user, metadata: userMetadata }, devicesCount: devices.length });
+    showToast(devices.length ? `Login ok: ${devices.length} dispositivos` : 'Login ok: sin dispositivos autorizados');
   } catch (e) {
     setAuthDebug(String(e));
     if (String(e).includes('TypeError')) showToast('Error de red/CORS. Ver consola.');
@@ -1018,15 +858,13 @@ async function onLogin() {
   window.dispatchEvent(new CustomEvent('app:logged-in', { detail: { user } }));
 }
 
-
 function onLogout() {
-  // limpiar capas/markers del mapa
   nukeNonBaseLayers();
   clearAllMarkers();
   clearRoute();
   resetSessionState();
 
-  token = null; user = null; devices = [];
+  token = null; user = null; userMetadata = null; devices = [];
   deviceMeta = {};
   showAuthPane();
   document.getElementById('statusPanel').classList.add('hidden');
@@ -1034,22 +872,15 @@ function onLogout() {
   window.dispatchEvent(new Event('app:logged-out'));
 }
 
-
-
-
 function onRefresh() {
   if (!devices.length) { showToast('No hay dispositivos'); return; }
   clearRoute();
   hideDetails();
   hideSearch();
   hideFleet();
-
-  // volver a mostrar autos y recargar
   showFleetMarkers();
   loadLastPoints(devices);
 }
-
-
 
 // chips "Ver hoy"
 function onChipsClick(ev) {
@@ -1057,12 +888,11 @@ function onChipsClick(ev) {
   if (!b || !currentDevice) return;
   const minutes = Number(b.getAttribute('data-min') || 0);
   if (!minutes) return;
-  const to   = new Date();               // hora local
+  const to   = new Date();
   const from = new Date(to.getTime() - minutes * 60 * 1000);
   console.log('[Ver hoy]', { device: currentDevice, fromLocal: from, toLocal: to });
   fetchAndDrawRange(currentDevice, from, to);
 }
-
 
 // rango manual
 function onApplyRange() {
@@ -1073,20 +903,19 @@ function onApplyRange() {
   const from = new Date(fromStr + ':00');
   const to   = new Date(toStr + ':00');
   if (isNaN(from.getTime()) || isNaN(to.getTime())) { showToast('Fechas inválidas'); return; }
-  if (to < from) { showToast('El rango es inválido'); return; }
+  if (to < from) { showToast('La fecha es inválida'); return; }
   fetchAndDrawRange(currentDevice, from, to);
 }
 
 // ====== Paradas (detenciones) ======
-const STOP_DIAMETER_M = 20;                       // diámetro del círculo
-const STOP_RADIUS_M   = STOP_DIAMETER_M / 2;      // radio (m)
-const STOP_MIN_POINTS = 3;                        // # mínimo de puntos para considerar "detenido"
-const STOP_MIN_DURATION_MS = 5 * 60 * 1000;       // duración mínima: 2 minutos (ajustable)
+const STOP_DIAMETER_M = 20;
+const STOP_RADIUS_M   = STOP_DIAMETER_M / 2;
+const STOP_MIN_POINTS = 3;
+const STOP_MIN_DURATION_MS = 5 * 60 * 1000;
 
-// Haversine en metros
 function haversineMeters([lat1, lon1], [lat2, lon2]) {
   const toRad = (x) => x * Math.PI / 180;
-  const R = 6371000; // m
+  const R = 6371000;
   const φ1 = toRad(lat1), φ2 = toRad(lat2);
   const Δφ = toRad(lat2 - lat1);
   const Δλ = toRad(lon2 - lon1);
@@ -1094,11 +923,10 @@ function haversineMeters([lat1, lon1], [lat2, lon2]) {
   return 2 * R * Math.asin(Math.sqrt(a));
 }
 
-// Crea un marcador + tooltip/popup para la parada
 function addStopBadge(centerLatLng, startTs, endTs) {
   const durMs  = (endTs instanceof Date ? endTs.getTime() : new Date(endTs).getTime()) -
                  (startTs instanceof Date ? startTs.getTime() : new Date(startTs).getTime());
-  const mins   = Math.max(1, Math.round(durMs / 60000)); // redondeo a min
+  const mins   = Math.max(1, Math.round(durMs / 60000));
   const marker = L.circleMarker(centerLatLng, {
     radius: 7,
     color: '#111827',
@@ -1124,12 +952,9 @@ function addStopBadge(centerLatLng, startTs, endTs) {
   routeMarkers.push(marker);
 }
 
-// Detecta “paradas” en base a los latlngs dibujados (los mismos que tu polyline)
-// y los puntos originales (para tiempos). Asume que points está en orden temporal.
 function annotateStops(points, latlngs) {
   if (!latlngs || latlngs.length === 0) return;
 
-  // Helper para leer timestamp en ms
   const tms = (p) => (p.ts instanceof Date ? p.ts.getTime() : new Date(p.ts).getTime());
 
   let clusterStartIdx = 0;
@@ -1158,13 +983,11 @@ function annotateStops(points, latlngs) {
     const d = haversineMeters([lat, lon], center);
 
     if (d <= STOP_RADIUS_M) {
-      // sigue dentro del círculo → actualizamos centro como promedio simple
       count += 1;
       sumLat += lat;
       sumLon += lon;
       center = [sumLat / count, sumLon / count];
     } else {
-      // cerramos cluster anterior y arrancamos uno nuevo
       flushCluster(i);
       clusterStartIdx = i;
       count = 1;
@@ -1173,16 +996,12 @@ function annotateStops(points, latlngs) {
       center = [lat, lon];
     }
   }
-  // Último cluster
   flushCluster(latlngs.length);
 }
-
 
 // descargar CSV
 async function onDownloadCsv() {
   if (!currentRoute.length || !currentDevice) return;
-
-  // 👉 cargar direcciones (usa caché, así que es rápido si repetís)
   showToast('Agregando direcciones a la exportación, espere 1 minuto...');
   await enrichRouteWithAddresses(currentRoute);
 
@@ -1194,7 +1013,7 @@ async function onDownloadCsv() {
     v: p.v,
     event: eventLabel(p.ev),
     sg: p.sg,
-    address: p.addr || ''   // 👉 nueva columna
+    address: p.addr || ''
   }));
 
   let name = `ruta_${currentDevice}`;
@@ -1208,10 +1027,8 @@ async function onDownloadCsv() {
   showToast('CSV descargado con direcciones');
 }
 
-
 // =================== wire-up ===================
 el('btnLogin').addEventListener('click', onLogin);
-
 document.getElementById('loginForm')?.addEventListener('submit', (e) => {
   e.preventDefault();
   onLogin();
@@ -1230,53 +1047,42 @@ el('btnCloseSearch').addEventListener('click', hideSearch);
 
 el('btnFleet').addEventListener('click', showFleet);
 el('btnCloseFleet').addEventListener('click', hideFleet);
-// Minimizar / expandir detalles sin perder la ruta
 el('btnMinimizeDetails')?.addEventListener('click', () => {
   const panel = el('detailsPanel');
   const btn   = el('btnMinimizeDetails');
   panel.classList.toggle('minimized');
-
   const minimized = panel.classList.contains('minimized');
-  // Cambiamos el ícono y el título del botón
   btn.textContent = minimized ? '▴' : '▾';
   btn.title = minimized ? 'Expandir' : 'Minimizar';
 });
 
 el('btnCloseDetails').addEventListener('click', async () => {
   hideDetails();
-  clearRoute();                   // ← si querés mantener la ruta, quitá esta línea
+  clearRoute();
   showFleetMarkers();
   if (devices?.length) await loadLastPoints(devices);
 });
 
-
 el('btnApplyRange').addEventListener('click', onApplyRange);
 el('btnDownload').addEventListener('click', onDownloadCsv);
 
-// chips dentro del panel de detalles
 el('detailsPanel').addEventListener('click', (ev) => {
   if (ev.target.closest('.chips')) onChipsClick(ev);
 });
 
-// locate (center on browser location)
-// locate (center on browser location and add circle marker)
 el('btnLocate').addEventListener('click', async () => {
   if (!map) return;
   if (!navigator.geolocation) { showToast('Geolocalización no disponible'); return; }
-  
+
   navigator.geolocation.getCurrentPosition(
     (pos) => {
       const { latitude, longitude } = pos.coords;
-      
-      // Centrar el mapa en la ubicación
       map.setView([latitude, longitude], 14);
-      
-      // Eliminar marcador anterior si existe
+
       if (window.currentLocationMarker) {
         map.removeLayer(window.currentLocationMarker);
       }
-      
-      // Crear y agregar círculo para la ubicación actual
+
       window.currentLocationMarker = L.circleMarker([latitude, longitude], {
         radius: 8,
         fillColor: "#3388ff",
@@ -1285,8 +1091,7 @@ el('btnLocate').addEventListener('click', async () => {
         opacity: 1,
         fillOpacity: 0.8
       }).addTo(map);
-      
-      // Agregar popup con información
+
       window.currentLocationMarker.bindPopup(`
         <div class="location-popup">
           <strong>Tu ubicación actual</strong><br>
@@ -1296,29 +1101,23 @@ el('btnLocate').addEventListener('click', async () => {
           ${new Date().toLocaleString()}
         </div>
       `).openPopup();
-      
+
       showToast('Ubicación encontrada y marcada');
     },
     (error) => {
       console.error('Error getting location:', error);
       let message = 'No se pudo obtener tu ubicación';
       switch(error.code) {
-        case error.PERMISSION_DENIED:
-          message = 'Permiso de ubicación denegado';
-          break;
-        case error.POSITION_UNAVAILABLE:
-          message = 'Información de ubicación no disponible';
-          break;
-        case error.TIMEOUT:
-          message = 'Tiempo de espera agotado para obtener la ubicación';
-          break;
+        case error.PERMISSION_DENIED:  message = 'Permiso de ubicación denegado'; break;
+        case error.POSITION_UNAVAILABLE: message = 'Información de ubicación no disponible'; break;
+        case error.TIMEOUT: message = 'Tiempo de espera agotado para obtener la ubicación'; break;
       }
       showToast(message);
     },
-    { 
-      enableHighAccuracy: true, 
+    {
+      enableHighAccuracy: true,
       timeout: 10000,
-      maximumAge: 60000 
+      maximumAge: 60000
     }
   );
 });

@@ -1,4 +1,4 @@
-export const API_BASE = "https://diagnosis-api-production.up.railway.app";
+export const API_BASE = "https://valle.api.dstechhub.com";
 
 export function showToast(msg, ms=2500) {
   const t = document.getElementById('toast');
@@ -14,7 +14,7 @@ const EVENT_MAP = {
   PANICO: new Set([20, 21]),
 };
 
-function normalizeType(t) {
+export function normalizeType(t) {
   const s = String(t || '').toLowerCase();
   if (s.startsWith('mot')) return 'moto';
   if (s.startsWith('traf')) return 'trafic';
@@ -30,7 +30,6 @@ export function parseDevicesInput(s) {
 // --- Geocodificación inversa con caché (Nominatim) ---
 const geocodeCache = new Map();
 export async function reverseGeocode(lat, lon) {
-  // redondeo para cachear “casi” el mismo lugar
   const key = `${Number(lat).toFixed(5)},${Number(lon).toFixed(5)}`;
   if (geocodeCache.has(key)) return geocodeCache.get(key);
 
@@ -47,16 +46,15 @@ export async function reverseGeocode(lat, lon) {
 // Pausa simple para throttling
 export function sleep(ms) { return new Promise(res => setTimeout(res, ms)); }
 
-
 export function eventColor(ev) {
   switch (Number(ev)) {
-    case 20: return '#ef4444'; // pánico
-    case 31: return '#22c55e'; // motor encendido
-    case 30: return '#b91c1c'; // detenido/apagado
-    case 29: return '#000000'; // sin alimentación
-    case 28: return '#7e22ce'; // con alimentación
-    case 11: return '#f59e0b'; // detenido
-    case 10: return '#22c55e'; // tránsito
+    case 20: return '#ef4444';
+    case 31: return '#22c55e';
+    case 30: return '#b91c1c';
+    case 29: return '#000000';
+    case 28: return '#7e22ce';
+    case 11: return '#f59e0b';
+    case 10: return '#22c55e';
     default: return '#9ca3af';
   }
 }
@@ -77,7 +75,7 @@ export function eventLabel(ev) {
 // Calcular distancia Haversine entre dos puntos (en km)
 export function haversineKm(lat1, lon1, lat2, lon2) {
   const toRad = (x) => x * Math.PI / 180;
-  const R = 6371; // Radio de la Tierra en km
+  const R = 6371;
   const dLat = toRad(lat2 - lat1);
   const dLon = toRad(lon2 - lon1);
   const a = Math.sin(dLat / 2) ** 2 +
@@ -86,7 +84,6 @@ export function haversineKm(lat1, lon1, lat2, lon2) {
   return 2 * R * Math.asin(Math.sqrt(a));
 }
 
-// En utils.js - modificar la función carIconByEvent
 export function iconByTypeAndEvent(type, ev) {
   const T = normalizeType(type);
 
@@ -101,10 +98,9 @@ export function iconByTypeAndEvent(type, ev) {
   if (EVENT_MAP.APAGADO.has(eventNum))  return `assets/${T}_apagado.svg`;
   if (EVENT_MAP.PANICO.has(eventNum))   return `assets/${T}_panico.svg`;
 
-  // Fallback razonable
   return `assets/${T}_detenido.svg`;
 }
-// Compat: versión solo-auto que ya usabas
+
 export function carIconByEvent(ev) {
   return iconByTypeAndEvent('auto', ev);
 }
@@ -143,5 +139,3 @@ export function downloadCsv(filename, rows) {
   a.href = url; a.download = filename; a.click();
   URL.revokeObjectURL(url);
 }
-
-
