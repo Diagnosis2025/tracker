@@ -7,6 +7,25 @@ export function setAuthToken(token) {
   AUTH_TOKEN = token || null;
 }
 
+// === ACTUALIZAR USUARIO ===
+// === UPDATE USER METADATA (reemplaza metadata completo) ===
+export async function apiUpdateUserMetadata(userId, metadata, token) {
+  if (!userId) throw new Error('apiUpdateUserMetadata: falta userId');
+  const url = `${API_BASE}/users/${encodeURIComponent(userId)}/metadata`;
+  const headers = { 'Content-Type': 'application/json' };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  // El backend define PATCH que reemplaza metadata completo con el objeto enviado
+  return await doJson(url, {
+    method: 'PATCH',
+    headers,
+    body: JSON.stringify(metadata),
+  });
+}
+
+// PUT por defecto; si el backend solo acepta PATCH, hacemos fallback automático.
+
+
 async function doJson(url, opts = {}) {
   const baseHeaders = { 'Content-Type': 'application/json' };
   if (AUTH_TOKEN) baseHeaders['Authorization'] = `Bearer ${AUTH_TOKEN}`;
@@ -202,7 +221,11 @@ export async function apiReadingsRange(
     const res1 = await doJson(url1);
     const arr1 = Array.isArray(res1?.data) ? res1.data : (Array.isArray(res1) ? res1 : []);
     if (arr1.length) {
-      const pts = arr1.map(normalizeHistoryItem);
+      // NORMALIZO Y FILTRO POR LA FRANJA HORARIA EXACTA [start, end)
+      const pts = arr1.map(normalizeHistoryItem).filter((pt) => {
+        const t = (pt.ts instanceof Date) ? pt.ts : new Date(pt.ts);
+       return t >= start && t < end; // filtra estrictamente por hora
+       });
       pts.sort((a, b) => a.ts - b.ts);
       return pts;
     }
@@ -227,7 +250,7 @@ export async function apiReadingsRange(
     const chunk = arr2.map(normalizeHistoryItem);
     for (const pt of chunk) {
       const t = (pt.ts instanceof Date) ? pt.ts : new Date(pt.ts);
-      if (t >= start && t < endPlusOne) points.push(pt);
+      if (t >= start && t < end) points.push(pt);
     }
 
     p++; pages++;

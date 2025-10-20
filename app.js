@@ -150,8 +150,7 @@ function downloadReportPDF() {
   doc.setTextColor(120, 120, 120);
   doc.text("Nota: El cálculo se realizó en base a coordenadas GPS registradas por el dispositivo.", 20, y);
   y += 5;
-  doc.text("Se filtraron saltos superiores a 5 km para evitar lecturas erróneas.", 20, y);
-
+ 
   doc.setDrawColor(200, 200, 200);
   doc.line(20, 270, 190, 270);
   doc.setFontSize(8);
@@ -230,7 +229,10 @@ function bearingDeg([lat1, lon1], [lat2, lon2]) {
 }
 
 window.App = {
-  get state() { return { user, token, devices, deviceMeta, markers, currentDevice, loginPassword }; },
+
+  get state() { return { user, token, metadata: userMetadata, devices, deviceMeta, markers, currentDevice, loginPassword }; },
+  getMap() { return map; },           // ← NUEVO: devuelve el L.Map real
+
   setDeviceMeta(newMeta) { deviceMeta = newMeta; },
   getDisplayName,
   getDeviceMeta,
@@ -773,18 +775,98 @@ async function fetchAndDrawRange(deviceId, from, to) {
 const btnMenu = document.getElementById('btnMenu');
 const menuContent = document.getElementById('menuContent');
 
+function closeMainMenu() {
+  if (!menuContent) return;
+  if (!menuContent.classList.contains('hidden')) {
+    menuContent.classList.add('hidden');
+    btnMenu?.setAttribute('aria-expanded', 'false');
+  }
+}
+
 if (btnMenu && menuContent) {
+  // Abrir/cerrar con el botón
   btnMenu.addEventListener('click', (e) => {
     e.stopPropagation();
+    const willOpen = menuContent.classList.contains('hidden');
     menuContent.classList.toggle('hidden');
+    btnMenu.setAttribute('aria-expanded', String(willOpen));
   });
-  document.addEventListener('click', () => {
-    menuContent.classList.add('hidden');
-  });
+
+  // No propagar clicks dentro del menú; si tocan un item, cerrar
   menuContent.addEventListener('click', (e) => {
     e.stopPropagation();
+    if (e.target.closest('.menu-item')) closeMainMenu();
+  });
+
+  // Cerrar al click afuera y con Escape
+  document.addEventListener('click', closeMainMenu);
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeMainMenu();
   });
 }
+
+// === CSV: enlazar "Cargar rutas" y "Limpiar Ruta CSV" ===
+document.addEventListener('DOMContentLoaded', () => {
+  initCSVModule({
+    onRouteLoaded: (routePoints) => {
+      try {
+        hideFleetMarkers();
+        clearRoute();
+        drawRoute(routePoints);
+
+        const b = routePoints
+          .filter(p => Number.isFinite(p.lat) && Number.isFinite(p.lon))
+          .map(p => [p.lat, p.lon]);
+        if (b.length && window.App?.state?.markers) {
+          map.fitBounds(b, { padding: [24, 24] });
+        }
+        showToast(`Ruta CSV dibujada (${routePoints.length} puntos)`);
+      } catch (err) {
+        console.error('Error mostrando ruta CSV', err);
+        showToast('No se pudo dibujar la ruta CSV');
+      }
+    },
+    onClearRequested: () => {
+      clearRoute();
+      showFleetMarkers();
+      showToast('Ruta CSV limpiada');
+    }
+  });
+});
+
+// === CSV: enlazar "Cargar rutas" y "Limpiar Ruta CSV" ===
+document.addEventListener('DOMContentLoaded', () => {
+  initCSVModule({
+    // Recibe el array de puntos parseado desde el CSV y lo dibuja
+    onRouteLoaded: (routePoints) => {
+      try {
+        // Si venías viendo la flota, oculto marcadores para resaltar la ruta
+        hideFleetMarkers();
+        clearRoute();
+        drawRoute(routePoints);
+
+        // Enfocar el mapa a la ruta cargada
+        const b = routePoints
+          .filter(p => Number.isFinite(p.lat) && Number.isFinite(p.lon))
+          .map(p => [p.lat, p.lon]);
+        if (b.length && window.App?.state?.markers) {
+          map.fitBounds(b, { padding: [24, 24] });
+        }
+        showToast(`Ruta CSV dibujada (${routePoints.length} puntos)`);
+      } catch (err) {
+        console.error('Error mostrando ruta CSV', err);
+        showToast('No se pudo dibujar la ruta CSV');
+      }
+    },
+
+    // Limpia la ruta cargada por CSV y vuelve a mostrar la flota
+    onClearRequested: () => {
+      clearRoute();
+      showFleetMarkers();
+      showToast('Ruta CSV limpiada');
+    }
+  });
+});
 
 document.getElementById('menuExit').addEventListener('click', onLogout);
 document.getElementById('menuReports')?.addEventListener('click', (e) => {
@@ -826,7 +908,10 @@ async function onLogin() {
     const res = await apiLogin({ username, password });
     token = res.token; user = res.user; userMetadata = res.metadata || null;
     setAuthToken(token);
-
+ // Hacer visible el metadata para el resto de módulos (editor.js mira user.metadata.role)
+ if (userMetadata) {
+   try { user = { ...user, metadata: userMetadata }; } catch (_) {}
+ }
     // Flota AUTORIZADA según metadata del usuario
     deviceMeta = userMetadata?.devices_meta || {};
     devices = (userMetadata?.devices || []).map(String);
@@ -856,6 +941,11 @@ async function onLogin() {
     else showToast('Login falló');
   }
   window.dispatchEvent(new CustomEvent('app:logged-in', { detail: { user } }));
+
+  console.log('[LOGIN] user.role ->', user?.role);
+console.log('[LOGIN] user.metadata.role ->', user?.metadata?.role);
+console.log('[LOGIN] state.metadata.role ->', userMetadata?.role);
+
 }
 
 function onLogout() {

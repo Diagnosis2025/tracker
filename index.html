@@ -197,6 +197,10 @@
           <span class="menu-icon">✏️</span>
           <span>Editar atributos</span>
         </a>
+        <a href="#" id="menuBases" class="menu-item hidden">
+        <span class="menu-icon">🏢</span>
+        <span>Agregar base</span>
+       </a>
         <a href="#" id="menuReports" class="menu-item">
           <span class="menu-icon">📊</span>
           <span>Informe de KM</span>
@@ -486,6 +490,51 @@
       </div>
     </aside>
 
+<!-- BASES PANEL (derecha) -->
+<aside id="basesPanel" class="right-drawer hidden">
+  <header>
+    <h3>Bases de la empresa</h3>
+    <button id="btnCloseBases" class="btn btn-sm">×</button>
+  </header>
+
+  <div class="content">
+    <div class="muted" style="margin-bottom:8px">
+      Podés definir hasta <b>4 bases</b>. Cada base es un cuadrado/rectángulo definido por <b>4 puntos</b> (lat/lon).
+    </div>
+
+    <!-- Lista de bases existentes -->
+    <div id="basesList" class="list" style="margin-bottom:12px"></div>
+
+    <div class="section-title">Nueva base</div>
+    <label>Nombre<br /><input id="baseName" type="text" placeholder="Base Central" /></label>
+
+    <div class="grid2" style="margin-top:8px">
+      <label>P1 Lat<br /><input id="p1lat" type="number" step="0.000001" placeholder="-26.80" /></label>
+      <label>P1 Lon<br /><input id="p1lon" type="number" step="0.000001" placeholder="-65.25" /></label>
+    </div>
+
+    <div class="grid2" style="margin-top:8px">
+      <label>P2 Lat<br /><input id="p2lat" type="number" step="0.000001" placeholder="-26.80" /></label>
+      <label>P2 Lon<br /><input id="p2lon" type="number" step="0.000001" placeholder="-65.20" /></label>
+    </div>
+
+    <div class="grid2" style="margin-top:8px">
+      <label>P3 Lat<br /><input id="p3lat" type="number" step="0.000001" placeholder="-26.85" /></label>
+      <label>P3 Lon<br /><input id="p3lon" type="number" step="0.000001" placeholder="-65.20" /></label>
+    </div>
+
+    <div class="grid2" style="margin-top:8px">
+      <label>P4 Lat<br /><input id="p4lat" type="number" step="0.000001" placeholder="-26.85" /></label>
+      <label>P4 Lon<br /><input id="p4lon" type="number" step="0.000001" placeholder="-65.25" /></label>
+    </div>
+
+    <div style="margin-top:12px">
+      <button id="btnAddBase" class="btn btn-primary btn-sm">Agregar base</button>
+      <button id="btnCancelBase" class="btn btn-secondary btn-sm">Cancelar</button>
+    </div>
+    <div id="basesMsg" class="muted mt-s"></div>
+  </div>
+</aside>
 
 
   </main>
@@ -507,7 +556,8 @@
   <script type="module" src="./app.js"></script>
   <script type="module" src="./editor.js"></script>
   <script type="module" src="./load-csv.js"></script>
-
+  <script type="module" src="./bases.js"></script>
+  
 <script type="module">
   function normalizeType(t) {
     const s = String(t || '').toLowerCase();

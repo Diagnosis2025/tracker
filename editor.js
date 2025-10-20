@@ -1,7 +1,6 @@
 // editor.js
-import { apiUpdateUser } from './api.js';
+import { apiUpdateUserMetadata } from './api.js';
 import { showToast } from './utils.js';
-
 const el = (id) => document.getElementById(id);
 
 function getApp() {
@@ -11,6 +10,20 @@ function getApp() {
   }
   return app;
 }
+
+/** Evalúa si el usuario puede editar (admin o nivel 1), chequeando posibles ubicaciones del rol */
+function canEditUser(state) {
+  const roleA = state?.user?.role;
+  const roleB = state?.user?.data?.role;
+  const roleC = state?.user?.metadata?.role;
+  const roleD = state?.metadata?.role; // ← NUEVO: metadata expuesto por app.js
+  const isAdmin = [roleA, roleB, roleC, roleD]
+    .map(x => String(x || '').toLowerCase())
+    .includes('admin');
+  const isNivel1 = Number(state?.user?.data?.nivel || 0) === 1;
+  return isAdmin || isNivel1;
+}
+
 
 function setText(id, val) {
   const n = el(id);
@@ -34,12 +47,14 @@ function populateSelect() {
   if (!sel) return;
 
   const ids = (state.devices || []).map(String);
-  sel.innerHTML = ids.map(id => `<option value="${id}">${id} — ${getDisplayName(id)}</option>`).join('');
+  sel.innerHTML = ids
+    .map(id => `<option value="${id}">${id} — ${getDisplayName(id)}</option>`)
+    .join('');
 
   if (state.currentDevice && ids.includes(String(state.currentDevice))) {
     sel.value = String(state.currentDevice);
   }
-  loadDeviceMetaIntoForm(sel.value);
+  if (sel.value) loadDeviceMetaIntoForm(sel.value);
 }
 
 function showEdit() {
@@ -52,12 +67,13 @@ function hideEdit() {
 async function saveMetaForm() {
   const { state, setDeviceMeta, getDisplayName, renderFleet } = getApp();
 
-  if (Number(state?.user?.data?.nivel || 0) !== 1) {
+  // Permisos unificados (admin o nivel 1)
+  if (!canEditUser(state)) {
     showToast('No tiene permisos para editar');
     return;
   }
 
-  const id = el('editDeviceSelect').value;
+  const id = el('editDeviceSelect')?.value;
   if (!id) { showToast('Elegí un dispositivo'); return; }
 
   const updated = {
@@ -70,33 +86,44 @@ async function saveMetaForm() {
     updatedAt: new Date().toISOString()
   };
 
-  // Merge con lo existente (no perder otros campos)
-  const newDevicesMeta = { ...(state.deviceMeta || {}) };
+  // === Tomar metadata actual desde donde esté disponible ===
+  // Prioridad: state.metadata (inyectado) → state.user.metadata → fallback state.user.data
+  const baseMeta =
+    (state?.metadata && typeof state.metadata === 'object')
+      ? state.metadata
+      : (state?.user?.metadata && typeof state.user.metadata === 'object')
+        ? state.user.metadata
+        : (state?.user?.data && typeof state.user.data === 'object')
+          ? state.user.data
+          : {};
+
+  // Asegurar estructura
+  const prevDevicesMeta = (baseMeta.devices_meta && typeof baseMeta.devices_meta === 'object')
+    ? baseMeta.devices_meta
+    : {};
+
+  // Merge solo del dispositivo editado
+  const newDevicesMeta = { ...prevDevicesMeta };
   newDevicesMeta[String(id)] = { ...(newDevicesMeta[String(id)] || {}), ...updated };
 
-  // ⚠️ Reusar data original SIN tocar nivel / devices / tipo / password
-  const userData = state.user?.data || {};
-  const payload = {
-    username: state.user?.username,
-    data: {
-      devices: userData.devices ?? [],
-      tipo: userData.tipo ?? 'auto',
-      nivel: userData.nivel ?? 2,
-      devices_meta: newDevicesMeta
-    }
+  // Construir nuevo metadata COMPLETO (reemplaza en backend)
+  const newMetadata = {
+    ...baseMeta,
+    devices_meta: newDevicesMeta
   };
 
-  const userId = String(state.user?.id ?? state.user?._id); // soporta id o _id
+  const userId = String(state.user?.id ?? state.user?._id);
   const msg = el('editMsg');
   if (msg) msg.textContent = 'Guardando...';
 
   try {
-    await apiUpdateUser(userId, payload, state?.token || null);
+    // === PATCH /users/{userId}/metadata ===
+    await apiUpdateUserMetadata(userId, newMetadata, state?.token || null);
 
-    // 1) Persistir en memoria de la app
+    // 1) Persistir en memoria del front (lo que usa la UI)
     setDeviceMeta(newDevicesMeta);
 
-    // 2) Actualizar tooltip del marcador si existe
+    // 2) Actualizar tooltip si hay marcador
     const m = state.markers?.[id];
     if (m) {
       const label = getDisplayName(id);
@@ -109,12 +136,12 @@ async function saveMetaForm() {
       });
     }
 
-    // 3) Refrescar “Mi flota”
+    // 3) Refrescar panel “Mi flota”
     if (typeof renderFleet === 'function') {
       renderFleet(state.devices || []);
     }
 
-    // 4) Si el panel de detalles está abierto para este device, refrescar visible
+    // 4) Si el detalle del device está visible, refrescar
     if (state.currentDevice && String(state.currentDevice) === String(id)) {
       const display = getDisplayName(id);
       const dpDev = el('dpDevice');
@@ -135,15 +162,15 @@ async function saveMetaForm() {
   } catch (e) {
     console.error('update error', e);
     if (msg) msg.textContent = 'Error al guardar';
-    showToast('No se pudo guardar: ' + e.message);
+    showToast('No se pudo guardar: ' + (e?.message || 'Error'));
   }
 }
 
+
 function onLoggedIn() {
   const { state } = getApp();
-  const canEdit = Number(state?.user?.data?.nivel || 0) === 1;
   const editBtn = el('menuEdit');
-  if (editBtn) editBtn.classList.toggle('hidden', !canEdit);
+  if (editBtn) editBtn.classList.toggle('hidden', !canEditUser(state));
 }
 
 // ===== Wire-up UI =====
@@ -152,7 +179,7 @@ function initEditorUI() {
     e.preventDefault();
     try {
       const { state } = getApp();
-      if (Number(state?.user?.data?.nivel || 0) !== 1) {
+      if (!canEditUser(state)) {
         showToast('No tiene permisos para editar');
         return;
       }
@@ -179,6 +206,7 @@ function initEditorUI() {
     if (editBtn) editBtn.classList.add('hidden');
   });
 
+  // Si ya estás logueado y recargaste, intenta setear visibilidad
   try { onLoggedIn(); } catch {}
 }
 
