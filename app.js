@@ -318,12 +318,10 @@ function fmtBattery(v) {
   return `${v.toFixed(2)} V`;
 }
 
-function ensureMarker(deviceId, lat, lon, ev) {
+async function ensureMarker(deviceId, lat, lon, ev) {
   const type = getDeviceType(deviceId);
 
-  let iconUrl;
-  if (ev === 'stale') iconUrl = `assets/${String(type).toLowerCase()}_sindatos.svg`;
-  else iconUrl = iconByTypeAndEvent(type, ev);
+const iconUrl = await resolveIconUrlWithFallback(type, ev);
 
   const icon = L.icon({
     iconUrl,
@@ -461,8 +459,11 @@ async function loadLastPoints(ids) {
 
       const lat = Number(d.la ?? d.lat ?? 0);
       const lon = Number(d.lo ?? d.lon ?? 0);
-      const ev  = Number(d.ev ?? d.e  ?? 0);
+      const ev  = Number(d.ev ?? d.e ?? 0);
       const stale = isStale(ts.getTime());
+
+      // DEBUG: Ver qué datos llegan del API
+      //console.log(`[LOAD] Device: ${id}, Event: ${ev}, Coords: ${lat},${lon}`, d);
 
       if (isFinite(lat) && isFinite(lon) && lat !== 0 && lon !== 0) {
         if (stale) ensureMarker(id, lat, lon, 'stale');
@@ -1041,6 +1042,37 @@ function addStopBadge(centerLatLng, startTs, endTs) {
 
   routeMarkers.push(marker);
 }
+
+
+function preloadImage(src) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(src);
+    img.onerror = () => reject(new Error('icon load failed: ' + src));
+    img.src = src;
+  });
+}
+
+async function resolveIconUrlWithFallback(type, ev) {
+  // lo mismo que hoy hace ensureMarker para elegir el archivo:
+  const wanted = (ev === 'stale')
+    ? `assets/${String(type).toLowerCase()}_sindatos.svg`
+    : iconByTypeAndEvent(type, ev); // usa EVENT_MAP (10/31 transit, 11 detenido, 30 apagado, 20/21 pánico)
+
+  try {
+    await preloadImage(wanted);
+    return wanted;
+  } catch {
+    // si no existe el apagado/transito/etc., caemos a "detenido"
+    const fallback = `assets/${String(type).toLowerCase()}_detenido.svg`;
+    try { await preloadImage(fallback); return fallback; }
+    catch (e2) {
+      console.warn('[icon]', e2);
+      return wanted; // devolvemos igualmente el pedido; Leaflet reintentará
+    }
+  }
+}
+
 
 function annotateStops(points, latlngs) {
   if (!latlngs || latlngs.length === 0) return;

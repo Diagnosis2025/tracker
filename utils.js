@@ -60,10 +60,11 @@ export function eventColor(ev) {
 }
 
 export function eventLabel(ev) {
-  switch (Number(ev)) {
+  const eventNum = Number(ev);
+  switch (eventNum) {
     case 20: return 'Pánico';
     case 31: return 'Motor Encendido';
-    case 30: return 'Motor Detenido';
+    case 30: return 'Motor Apagado'; // ← CORREGIDO: era "Motor Detenido"
     case 29: return 'Sin alimentación';
     case 28: return 'Con alimentación';
     case 11: return 'Detenido';
@@ -91,13 +92,17 @@ export function iconByTypeAndEvent(type, ev) {
     return `assets/${T}_sindatos.svg`;
   }
 
-  const eventNum = typeof ev === 'string' ? parseInt(ev, 10) : ev;
+  const eventNum = typeof ev === 'string' ? parseInt(ev, 10) : Number(ev);
+
+  // Debug: mostrar qué evento se está procesando
+  console.log(`[ICON] type: ${T}, event: ${eventNum}, looking for icon...`);
 
   if (EVENT_MAP.TRANSIT.has(eventNum))  return `assets/${T}_transito.svg`;
   if (EVENT_MAP.DETENIDO.has(eventNum)) return `assets/${T}_detenido.svg`;
   if (EVENT_MAP.APAGADO.has(eventNum))  return `assets/${T}_apagado.svg`;
   if (EVENT_MAP.PANICO.has(eventNum))   return `assets/${T}_panico.svg`;
 
+  console.warn(`[ICON] Evento no reconocido: ${eventNum}, usando detenido por defecto`);
   return `assets/${T}_detenido.svg`;
 }
 

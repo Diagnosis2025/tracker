@@ -112,6 +112,7 @@ function fallbackEventFromSpeed(v) {
 }
 
 // --------------- Normalizaciones ---------------
+// --------------- Normalizaciones ---------------
 export function normalizeLastReading(raw) {
   const d = raw?.data || {};
   const devId = raw?.deviceId ?? raw?.id;
@@ -125,10 +126,11 @@ export function normalizeLastReading(raw) {
 
   const { lat, lon } = coordsToLatLon(raw?.location, d);
 
+  // ⚠️ CORREGIDO: No usar fallback si ya existe un evento
   const v  = d.v ?? 0;
-  const ev = d.ev ?? d.e ?? fallbackEventFromSpeed(v);
-  const sg = d.sg ?? d.q ?? d.signal ?? null;     // q → señal
-  const Bt = d.Bt ?? d.b ?? d.bt ?? null;         // b → batería
+  const ev = d.ev ?? d.e ?? d.i ?? 0; // Usar 'i' también como posible evento
+  const sg = d.sg ?? d.q ?? d.signal ?? null;
+  const Bt = d.Bt ?? d.b ?? d.bt ?? null;
 
   return {
     deviceId: devId,
@@ -138,7 +140,7 @@ export function normalizeLastReading(raw) {
       la: lat,
       lo: lon,
       v,
-      ev,
+      ev: Number(ev), // Asegurar que sea número
       sg,
       Bt
     },
@@ -160,7 +162,8 @@ export function normalizeHistoryItem(it) {
   const { lat, lon } = coordsToLatLon(it?.location, d);
 
   const v  = Number(d.v ?? 0) || 0;
-  const ev = Number(d.ev ?? d.e ?? fallbackEventFromSpeed(v)) || 0;
+  // ⚠️ CORREGIDO: No usar fallback si ya existe evento
+  const ev = Number(d.ev ?? d.e ?? d.i ?? 0) || 0;
   const sg = d.sg ?? d.q ?? d.signal ?? '';
 
   return {
@@ -171,7 +174,6 @@ export function normalizeHistoryItem(it) {
     raw: it
   };
 }
-
 // -------------------- GPS --------------------
 
 // 1) Listar dispositivos disponibles (último punto por device)
