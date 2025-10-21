@@ -39,6 +39,12 @@ let basesLayer = null;
 function ensureBasesLayer() {
   const map = getMap();
   if (!map) return null;
+  
+  // Limpiar capa existente si hay problemas
+  if (basesLayer && !map.hasLayer(basesLayer)) {
+    basesLayer = null;
+  }
+  
   if (!basesLayer) {
     basesLayer = L.layerGroup().addTo(map);
   }
@@ -46,8 +52,9 @@ function ensureBasesLayer() {
 }
 
 function clearBasesOnMap() {
-  const layer = ensureBasesLayer();
-  if (layer) layer.clearLayers();
+  if (basesLayer) {
+    basesLayer.clearLayers();
+  }
 }
 
 function drawBaseOnMap(base) {
@@ -57,12 +64,22 @@ function drawBaseOnMap(base) {
   const pts = Array.isArray(base?.points) ? base.points : [];
   if (pts.length !== 4) return;
 
-  // pts: [[lat,lon], [lat,lon], [lat,lon], [lat,lon]]
+  // Limpiar cualquier polígono existente para esta base
+  layer.eachLayer((existingLayer) => {
+    if (existingLayer._baseId === base.name) {
+      layer.removeLayer(existingLayer);
+    }
+  });
+
   const latlngs = pts.map(p => L.latLng(p[0], p[1]));
   const poly = L.polygon(latlngs, {
     weight: 2,
-    fillOpacity: 0.08
+    fillOpacity: 0.08,
+    color: '#2563eb'
   });
+
+  // Identificar esta base
+  poly._baseId = base.name;
 
   const label = base?.name ? `🏢 ${base.name}` : 'Base';
   poly.bindTooltip(label, {
@@ -262,11 +279,37 @@ function onLoggedIn() {
   const menu = el('menuBases');
   if (menu) menu.classList.toggle('hidden', !canEditUser(state));
 
+  // Forzar recreación de la capa
+  basesLayer = null;
+  
   // Render inicial de bases (si ya hay en metadata)
   const { bases } = readBaseMetadata(state);
   renderBasesList(bases);
-  renderAllBasesOnMap(bases);
+  
+  // Pequeño delay para asegurar que el mapa esté listo
+  setTimeout(() => {
+    renderAllBasesOnMap(bases);
+  }, 100);
 }
+
+// === Mejorar cleanup al logout ===
+window.addEventListener('app:logged-out', () => {
+  const menu = el('menuBases');
+  if (menu) menu.classList.add('hidden');
+  renderBasesList([]);
+  
+  // Limpiar completamente la capa
+  if (basesLayer) {
+    basesLayer.clearLayers();
+    const map = getMap();
+    if (map && map.hasLayer(basesLayer)) {
+      map.removeLayer(basesLayer);
+    }
+    basesLayer = null;
+  }
+  
+  hideBases();
+});
 
 // === Wire-up ===
 function initBasesUI() {
